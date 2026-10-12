@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rinigan</string>
+    <string name="module_description">وحدة كاميرا افتراضية — استبدال صورة الكاميرا بفيديو محلي أو صور أو بث شبكي (Xposed / LSPosed / LSPatch)</string>
+    <string name="description">يرجى زيارة المستودع الإلكتروني للاطلاع على آخر التحديثات</string>
+    <string name="Warning">يُمنع الاستخدام لأي غرض غير قانوني!! أنت تتحمل كامل المسؤولية عن جميع النتائج!!</string>
+
+    <!-- Permission -->
+    <string name="permission_switch_text">منح إذن التخزين المحلي</string>
+    <string name="permission_lack_warn">الأذونات المطلوبة غير متوفرة</string>
+    <string name="permission_description">يُستخدم إذن الوصول إلى التخزين المحلي لإعداد ملفات التكوين.</string>
+    <string name="positive">موافق</string>
+    <string name="negative">رفض</string>
+
+    <!-- Home Screen Status -->
+    <string name="status_no_permission">لا يوجد إذن</string>
+    <string name="status_working">يعمل الآن</string>
+    <string name="status_paused">متوقف مؤقتاً</string>
+    <string name="status_module_inactive">الوحدة غير مفعّلة</string>
+    <string name="status_activate_hint">فعّل الوحدة في مدير Xposed ثم أعد تشغيل الجهاز</string>
+    <string name="status_grant_permission">منح الإذن</string>
+    <string name="status_label_play_mode">وضع التشغيل</string>
+    <string name="status_label_mic">الميكروفون</string>
+    <string name="status_label_video_sound">صوت الفيديو</string>
+    <string name="status_label_notification">التحكم بالإشعارات</string>
+    <string name="status_value_on">مفعّل</string>
+    <string name="status_value_off">معطّل</string>
+    <string name="status_value_random_play">تشغيل عشوائي</string>
+    <string name="status_value_sequential_play">تشغيل متسلسل</string>
+    <string name="status_value_mic_mute">صامت</string>
+    <string name="status_value_mic_replace">استبدال الصوت</string>
+    <string name="status_value_mic_sync">مزامنة الفيديو</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_category_general">الإعدادات العامة</string>
+    <string name="settings_notification_control">تفعيل التحكم بالإشعارات</string>
+    <string name="settings_notification_control_desc">تبديل الفيديوهات بسرعة من شريط الإشعارات</string>
+    <string name="settings_play_sound">تشغيل الصوت</string>
+    <string name="settings_play_sound_desc">تشغيل الصوت الأصلي عند استبدال الفيديو</string>
+    <string name="settings_mic_hook">خطاف الميكروفون</string>
+    <string name="settings_mic_hook_desc">اعتراض مدخل الميكروفون</string>
+    <string name="mic_mode_mute">الوضع الصامت</string>
+    <string name="mic_mode_mute_desc">إخراج بيانات صامتة</string>
+    <string name="mic_mode_replace">استبدال الصوت</string>
+    <string name="mic_mode_replace_desc">حقن ملف صوتي مخصص</string>
+    <string name="mic_mode_video_sync">مزامنة الفيديو</string>
+    <string name="mic_mode_video_sync_desc">تشغيل المسار الصوتي الأصلي للفيديو</string>
+    <string name="settings_random_play">تشغيل عشوائي</string>
+    <string name="settings_random_play_desc">اختيار عشوائي من قائمة الفيديوهات</string>
+    <string name="settings_category_advanced">الإعدادات المتقدمة</string>
+    <string name="settings_force_private_dir">إجبار المجلد الخاص</string>
+    <string name="settings_force_private_dir_desc">حل مشكلة التطبيقات التي لا تستطيع قراءة الملفات</string>
+    <string name="settings_disable_toast">تعطيل الرسائل المنبثقة</string>
+    <string name="settings_disable_toast_desc">إخفاء جميع تلميحات العمليات</string>
+    <string name="settings_enable_photo_fake">تفعيل استبدال الصور</string>
+    <string name="settings_enable_photo_fake_desc">اعتراض طلبات التصوير وحقن إطارات الفيديو</string>
+    <string name="settings_disable_module">تعطيل الوحدة</string>
+    <string name="settings_disable_module_desc">تعطيل جميع ميزات الاعتراض مؤقتاً</string>
+    <string name="settings_system_permission">إعدادات أذونات النظام</string>
+    <string name="settings_system_permission_desc">إدارة أذونات التخزين والإشعارات</string>
+
+    <!-- Stream Settings -->
+    <string name="settings_category_stream">إعدادات البث الشبكي</string>
+    <string name="settings_media_source_type">نوع مصدر الوسائط</string>
+    <string name="settings_media_source_local">ملف محلي</string>
+    <string name="settings_media_source_stream">بث شبكي</string>
+    <string name="settings_stream_url">عنوان البث</string>
+    <string name="settings_stream_url_hint">أدخل عنواناً مثل rtsp:// أو rtmp://</string>
+    <string name="settings_stream_auto_reconnect">إعادة الاتصال تلقائياً</string>
+    <string name="settings_stream_auto_reconnect_desc">إعادة الاتصال تلقائياً عند انقطاع البث</string>
+    <string name="settings_stream_local_fallback">الاحتياط المحلي</string>
+    <string name="settings_stream_local_fallback_desc">العودة إلى الفيديو المحلي عند تعذر البث</string>
+    <string name="settings_stream_transport_hint">بروتوكول نقل RTSP</string>
+    <string name="settings_stream_transport_auto">تلقائي</string>
+    <string name="settings_stream_transport_tcp">TCP</string>
+    <string name="settings_stream_transport_udp">UDP</string>
+    <string name="settings_stream_timeout">مهلة الاتصال</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_manage">الإدارة</string>
+    <string name="nav_settings">الإعدادات</string>
+
+    <!-- Manage Screen -->
+    <string name="tab_video_manage">الفيديوهات</string>
+    <string name="tab_audio_manage">الصوتيات</string>
+    <string name="desc_add_media">إضافة وسائط</string>
+    <string name="status_no_video">لا توجد ملفات فيديو بعد</string>
+    <string name="status_no_audio">لا توجد ملفات صوتية بعد</string>
+    <string name="import_to_camera_dir">استيراد إلى مجلد Camera1 (نسخ)</string>
+    <string name="select_from_storage">اختيار من التخزين (مرجع)</string>
+
+    <!-- About -->
+    <string name="about_title">حول</string>
+    <string name="about_app_name">Rinigan</string>
+    <string name="about_desc">وحدة كاميرا افتراضية مبنية على إطار Xposed</string>
+    <string name="support_title">الدعم</string>
+    <string name="support_github">العرض والإبلاغ عن المشكلات على GitHub</string>
+
+    <!-- Misc -->
+    <string name="config_migrated">تم ترحيل التكوين تلقائياً</string>
+
+    <!-- Notification -->
+    <string name="notif_content">أدوات تحكم rinigan في الإشعارات</string>
+    <string name="notif_action_prev">السابق</string>
+    <string name="notif_action_next">التالي</string>
+    <string name="notif_action_exit">خروج</string>
+    <string name="notif_channel_name">خدمة تحكم rinigan</string>
+    <string name="notif_channel_desc">يعرض أدوات تبديل فيديو rinigan</string>
+</resources>
