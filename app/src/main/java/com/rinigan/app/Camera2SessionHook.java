@@ -270,7 +270,9 @@ public class Camera2SessionHook {
                 } else {
                     SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.NV21);
                 }
-                SharedState.c2_hw_decode_obj.set_surfcae(SharedState.c2_reader_Surfcae);
+                SharedState.c2_hw_decode_obj.set_surfcae(TransformApplicator.wrapSurface(
+                        SharedState.c2_reader_Surfcae, "c2-r1", newPath,
+                        SharedState.toast_content, null));
                 if (resumePos > 0) SharedState.c2_hw_decode_obj.seekTo(resumePos);
                 if (SharedState.playPaused) SharedState.c2_hw_decode_obj.setPaused(true);
                 SharedState.c2_hw_decode_obj.decode(HookGuards.getVideoFile().getAbsolutePath());
@@ -292,7 +294,9 @@ public class Camera2SessionHook {
                 } else {
                     SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.NV21);
                 }
-                SharedState.c2_hw_decode_obj_1.set_surfcae(SharedState.c2_reader_Surfcae_1);
+                SharedState.c2_hw_decode_obj_1.set_surfcae(TransformApplicator.wrapSurface(
+                        SharedState.c2_reader_Surfcae_1, "c2-r2", newPath,
+                        SharedState.toast_content, null));
                 if (resumePos > 0) SharedState.c2_hw_decode_obj_1.seekTo(resumePos);
                 if (SharedState.playPaused) SharedState.c2_hw_decode_obj_1.setPaused(true);
                 SharedState.c2_hw_decode_obj_1.decode(HookGuards.getVideoFile().getAbsolutePath());
@@ -309,7 +313,9 @@ public class Camera2SessionHook {
                 SharedState.c2_player.release();
                 SharedState.c2_player = new MediaPlayer();
             }
-            SharedState.c2_player.setSurface(SharedState.c2_preview_Surfcae);
+            SharedState.c2_player.setSurface(TransformApplicator.wrapSurface(
+                    SharedState.c2_preview_Surfcae, "c2-p1", newPath,
+                    SharedState.toast_content, null));
             if (!HookGuards.shouldPlaySound()) {
                 SharedState.c2_player.setVolume(0, 0);
             }
@@ -335,7 +341,9 @@ public class Camera2SessionHook {
                 SharedState.c2_player_1.release();
                 SharedState.c2_player_1 = new MediaPlayer();
             }
-            SharedState.c2_player_1.setSurface(SharedState.c2_preview_Surfcae_1);
+            SharedState.c2_player_1.setSurface(TransformApplicator.wrapSurface(
+                    SharedState.c2_preview_Surfcae_1, "c2-p2", newPath,
+                    SharedState.toast_content, null));
             if (!HookGuards.shouldPlaySound()) {
                 SharedState.c2_player_1.setVolume(0, 0);
             }
@@ -432,7 +440,9 @@ public class Camera2SessionHook {
                 } else {
                     SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.NV21);
                 }
-                SharedState.c2_hw_decode_obj.set_surfcae(SharedState.c2_reader_Surfcae);
+                SharedState.c2_hw_decode_obj.set_surfcae(TransformApplicator.wrapSurface(
+                        SharedState.c2_reader_Surfcae, "c2-r1", newPath,
+                        SharedState.toast_content, null));
                 if (resumePos > 0) SharedState.c2_hw_decode_obj.seekTo(resumePos);
                 if (SharedState.playPaused) SharedState.c2_hw_decode_obj.setPaused(true);
                 SharedState.c2_hw_decode_obj.decode(newPath);
@@ -455,7 +465,9 @@ public class Camera2SessionHook {
                 } else {
                     SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.NV21);
                 }
-                SharedState.c2_hw_decode_obj_1.set_surfcae(SharedState.c2_reader_Surfcae_1);
+                SharedState.c2_hw_decode_obj_1.set_surfcae(TransformApplicator.wrapSurface(
+                        SharedState.c2_reader_Surfcae_1, "c2-r2", newPath,
+                        SharedState.toast_content, null));
                 if (resumePos > 0) SharedState.c2_hw_decode_obj_1.seekTo(resumePos);
                 if (SharedState.playPaused) SharedState.c2_hw_decode_obj_1.setPaused(true);
                 SharedState.c2_hw_decode_obj_1.decode(newPath);
@@ -472,7 +484,9 @@ public class Camera2SessionHook {
             }
             try {
                 SharedState.c2_player.reset();
-                SharedState.c2_player.setSurface(SharedState.c2_preview_Surfcae);
+                SharedState.c2_player.setSurface(TransformApplicator.wrapSurface(
+                        SharedState.c2_preview_Surfcae, "c2-p1", newPath,
+                        SharedState.toast_content, null));
                 SharedState.c2_player.setVolume(playSound ? 1f : 0f, playSound ? 1f : 0f);
                 SharedState.c2_player.setLooping(true);
                 SharedState.c2_player.setOnPreparedListener(mp -> SharedState.c2_player.start());
@@ -491,7 +505,9 @@ public class Camera2SessionHook {
             }
             try {
                 SharedState.c2_player_1.reset();
-                SharedState.c2_player_1.setSurface(SharedState.c2_preview_Surfcae_1);
+                SharedState.c2_player_1.setSurface(TransformApplicator.wrapSurface(
+                        SharedState.c2_preview_Surfcae_1, "c2-p2", newPath,
+                        SharedState.toast_content, null));
                 SharedState.c2_player_1.setVolume(playSound ? 1f : 0f, playSound ? 1f : 0f);
                 SharedState.c2_player_1.setLooping(true);
                 SharedState.c2_player_1.setOnPreparedListener(mp -> SharedState.c2_player_1.start());
@@ -522,6 +538,7 @@ public class Camera2SessionHook {
     // ======================== Stop all players (called when module is disabled) ========================
     public static void stopAllPlayers() {
         XposedBridge.log("[Rinigan]Camera2 stopping all players/decoders");
+        TransformApplicator.releaseAll();
         try {
             if (SharedState.c2_player != null) {
                 SharedState.c2_player.stop();

@@ -29,7 +29,9 @@ data class MainUiState(
     val streamAutoReconnect: Boolean = true,
     val streamLocalFallback: Boolean = true,
     val streamTransportHint: String = "auto",
-    val streamTimeoutMs: Long = 8000L
+    val streamTimeoutMs: Long = 8000L,
+    val perAppEngineDisabled: Boolean = false,
+    val appProfilesJson: String = ""
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -61,7 +63,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     streamAutoReconnect = configManager.getBoolean(ConfigManager.KEY_STREAM_AUTO_RECONNECT, true),
                     streamLocalFallback = configManager.getBoolean(ConfigManager.KEY_STREAM_LOCAL_FALLBACK, true),
                     streamTransportHint = configManager.getString(ConfigManager.KEY_STREAM_TRANSPORT_HINT, "auto"),
-                    streamTimeoutMs = configManager.getLong(ConfigManager.KEY_STREAM_TIMEOUT_MS, 8000L)
+                    streamTimeoutMs = configManager.getLong(ConfigManager.KEY_STREAM_TIMEOUT_MS, 8000L),
+                    perAppEngineDisabled = configManager.getBoolean(ConfigManager.KEY_PERAPP_ENGINE_DISABLED, false),
+                    appProfilesJson = configManager.getString(ConfigManager.KEY_APP_PROFILES, "")
                 )
             }
         }
@@ -182,6 +186,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             configManager.setLong(ConfigManager.KEY_STREAM_TIMEOUT_MS, timeout)
             _uiState.update { it.copy(streamTimeoutMs = timeout) }
+        }
+    }
+
+    // ------ Per-app transformation engine ------
+
+    fun setPerAppEngineDisabled(disabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            configManager.setBoolean(ConfigManager.KEY_PERAPP_ENGINE_DISABLED, disabled)
+            _uiState.update { it.copy(perAppEngineDisabled = disabled) }
+        }
+    }
+
+    fun setAppProfilesJson(json: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            configManager.setString(ConfigManager.KEY_APP_PROFILES, json)
+            _uiState.update { it.copy(appProfilesJson = json) }
         }
     }
 }

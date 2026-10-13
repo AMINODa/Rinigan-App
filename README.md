@@ -13,10 +13,31 @@
 
 - Replace the camera feed with a local video
 - Supports Camera1 / Camera2
+- **Per-App Transformation Engine (v5.2)**: automatic per-app rotation, scaling and mirroring of the replacement stream
 - Supports image replacement of photo results
 - Supports microphone mute, audio replacement and original video sound
 - Supports random playback, notification-bar switching and network streams
 - Works with LSPosed, LSPatch, EdXposed and classic Xposed
+
+### Per-App Transformation Engine (new in v5.2)
+
+The universal transformation engine normalizes orientation and aspect ratio for **every** calling app automatically:
+
+- **Universal default fallback** — unclassified apps get a portrait, full-frame FIT_CENTER stream
+- **Automatic calling-app detection** — the requesting package is resolved at runtime (host process + Binder UID)
+- **Per-app profiles** — rotation (0/90/180/270), scale mode (FIT_CENTER / CENTER_CROP / STRETCH), target resolution, horizontal/vertical flip, auto portrait normalization
+- **OpenGL matrix relay** — frames are transformed before reaching the app's Surface; Camera1 preview buffers are transformed at byte level (NV21)
+
+Configure per app in the new **Per-App** tab, via `app_profiles` in `cs_config.json`, or by dropping an `app_profiles.json` file in `DCIM/Camera1`:
+
+```json
+{
+  "profiles": {
+    "com.whatsapp": { "rotation": 0, "scaleMode": "FIT_CENTER", "normalizePortrait": true },
+    "com.instagram.android": { "rotation": 90, "scaleMode": "CENTER_CROP" }
+  }
+}
+```
 
 ### Basic usage
 
@@ -50,10 +71,22 @@ This project is for learning, research and legal use only. Please comply with yo
 
 - استبدال صورة الكاميرا بفيديو محلي
 - دعم Camera1 / Camera2
+- **محرّك التحويل لكل تطبيق (v5.2)**: تدوير وقياس وانعكاس تلقائي للبث البديل حسب كل تطبيق
 - دعم استبدال نتائج التصوير بالصور
 - دعم كتم الميكروفون واستبدال الصوت وصوت الفيديو الأصلي
 - دعم التشغيل العشوائي والتبديل من شريط الإشعارات والبث الشبكي
 - يعمل مع LSPosed و LSPatch و EdXposed و Xposed التقليدي
+
+### محرّك التحويل لكل تطبيق (جديد في v5.2)
+
+يقوم المحرك الشامل بضبط الاتجاه ونسبة الأبعاد تلقائيًا لكل تطبيق يستدعي الكاميرا:
+
+- **قاعدة عامة افتراضية** — أي تطبيق غير مصنّف يحصل على بث عمودي كامل الإطار بنمط FIT_CENTER
+- **كشف تلقائي للتطبيق الطالب** — تُحدَّد الحزمة الطالبة وقت التشغيل (عملية التطبيق + Binder UID)
+- **ملفات تعريف لكل تطبيق** — دوران (0/90/180/270)، نمط القياس (FIT_CENTER / CENTER_CROP / STRETCH)، دقة الهدف، انعكاس أفقي/رأسي، تطبيع عمودي تلقائي
+- **مرحّل مصفوفة OpenGL** — تُحوَّل الإطارات قبل وصولها إلى Surface الخاص بالتطبيق؛ وتُحوَّل مخازن معاينة Camera1 على مستوى البايت (NV21)
+
+يُضبَط كل تطبيق من تبويب **لكل تطبيق** الجديد، أو عبر `app_profiles` في `cs_config.json`، أو بوضع ملف `app_profiles.json` في `DCIM/Camera1`.
 
 ### الاستخدام الأساسي
 
@@ -87,10 +120,22 @@ This project is for learning, research and legal use only. Please comply with yo
 
 - Remplacer le flux de la caméra par une vidéo locale
 - Prise en charge de Camera1 / Camera2
+- **Moteur de transformation par application (v5.2)** : rotation, mise à l'échelle et miroir automatiques du flux de remplacement pour chaque application
 - Remplacement des photos par des images
 - Coupure du micro, remplacement audio et son d'origine de la vidéo
 - Lecture aléatoire, changement via la barre de notification et flux réseau
 - Compatible avec LSPosed, LSPatch, EdXposed et Xposed classique
+
+### Moteur de transformation par application (nouveau en v5.2)
+
+Le moteur universel normalise l'orientation et le ratio pour **toutes** les applications appelantes :
+
+- **Repli universel** — toute application non classifiée reçoit un flux portrait plein cadre en FIT_CENTER
+- **Détection automatique de l'application appelante** — le paquet demandeur est résolu à l'exécution (processus hôte + Binder UID)
+- **Profils par application** — rotation (0/90/180/270), mode d'échelle (FIT_CENTER / CENTER_CROP / STRETCH), résolution cible, miroir horizontal/vertical, normalisation portrait auto
+- **Relais matriciel OpenGL** — les images sont transformées avant d'atteindre la Surface de l'application ; les tampons d'aperçu Camera1 sont transformés au niveau octet (NV21)
+
+Configurez chaque application dans le nouvel onglet **Par app**, via `app_profiles` dans `cs_config.json`, ou en déposant un fichier `app_profiles.json` dans `DCIM/Camera1`.
 
 ### Utilisation de base
 

@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainApp() {
         val navController = rememberNavController()
-        val items = listOf(Screen.Home, Screen.Manage, Screen.Settings)
+        val items = listOf(Screen.Home, Screen.Manage, Screen.PerApp, Screen.Settings)
 
         Scaffold(
             topBar = {
@@ -108,6 +108,23 @@ class MainActivity : ComponentActivity() {
                             title = {
                                 Text(
                                     text = stringResource(Screen.Manage.titleResId),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.background,
+                                titleContentColor = MaterialTheme.colorScheme.onBackground
+                            )
+                        )
+                    }
+                    Screen.PerApp.route -> {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = stringResource(Screen.PerApp.titleResId),
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontSize = 22.sp,
                                         fontWeight = FontWeight.Bold
@@ -163,6 +180,9 @@ class MainActivity : ComponentActivity() {
                 }
                 composable(Screen.Manage.route) {
                     ManageScreen(viewModel = mediaViewModel)
+                }
+                composable(Screen.PerApp.route) {
+                    PerAppScreen(viewModel = mainViewModel)
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(viewModel = mainViewModel)

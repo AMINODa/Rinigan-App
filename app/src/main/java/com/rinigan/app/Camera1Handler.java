@@ -126,7 +126,9 @@ public class Camera1Handler {
                     if (!SharedState.ori_holder.getSurface().isValid() || SharedState.ori_holder == null) {
                         return;
                     }
-                    SharedState.mplayer1.setSurface(SharedState.ori_holder.getSurface());
+                    SharedState.mplayer1.setSurface(TransformApplicator.wrapSurface(
+                            SharedState.ori_holder.getSurface(), "c1-holder",
+                            file.getAbsolutePath(), SharedState.toast_content, null));
                     if (!(HookGuards.shouldPlaySound() && (!SharedState.is_someone_playing))) {
                         SharedState.mplayer1.setVolume(0, 0);
                         SharedState.is_someone_playing = false;
@@ -162,7 +164,9 @@ public class Camera1Handler {
                         SharedState.mMediaPlayer.release();
                         SharedState.mMediaPlayer = new MediaPlayer();
                     }
-                    SharedState.mMediaPlayer.setSurface(SharedState.mSurface);
+                    SharedState.mMediaPlayer.setSurface(TransformApplicator.wrapSurface(
+                            SharedState.mSurface, "c1-tex",
+                            file.getAbsolutePath(), SharedState.toast_content, null));
                     if (!(HookGuards.shouldPlaySound() && (!SharedState.is_someone_playing))) {
                         SharedState.mMediaPlayer.setVolume(0, 0);
                         SharedState.is_someone_playing = false;
@@ -335,8 +339,10 @@ public class Camera1Handler {
                     while (SharedState.data_buffer == null) {
                         // wait
                     }
-                    System.arraycopy(SharedState.data_buffer, 0, paramd.args[0], 0,
-                            Math.min(SharedState.data_buffer.length, ((byte[]) paramd.args[0]).length));
+                    TransformApplicator.transformNv21IntoPreview(SharedState.data_buffer,
+                            SharedState.currentVideoPath,
+                            (byte[]) paramd.args[0], SharedState.mwidth, SharedState.mhight,
+                            SharedState.toast_content, null);
                 } else {
                     SharedState.camera_callback_calss = preview_cb_class;
                     SharedState.camera_onPreviewFrame = (android.hardware.Camera) paramd.args[1];
@@ -366,8 +372,10 @@ public class Camera1Handler {
                     while (SharedState.data_buffer == null) {
                         // wait
                     }
-                    System.arraycopy(SharedState.data_buffer, 0, paramd.args[0], 0,
-                            Math.min(SharedState.data_buffer.length, ((byte[]) paramd.args[0]).length));
+                    TransformApplicator.transformNv21IntoPreview(SharedState.data_buffer,
+                            SharedState.currentVideoPath,
+                            (byte[]) paramd.args[0], SharedState.mwidth, SharedState.mhight,
+                            SharedState.toast_content, null);
                 }
             }
         });
@@ -520,11 +528,15 @@ public class Camera1Handler {
                     SharedState.mSurface = new Surface(SharedState.mSurfacetexture);
                 }
                 SharedState.mMediaPlayer = new MediaPlayer();
-                SharedState.mMediaPlayer.setSurface(SharedState.mSurface);
+                SharedState.mMediaPlayer.setSurface(TransformApplicator.wrapSurface(
+                        SharedState.mSurface, "c1-tex", newPath,
+                        SharedState.toast_content, null));
             }
             try {
                 SharedState.mMediaPlayer.reset();
-                SharedState.mMediaPlayer.setSurface(SharedState.mSurface);
+                SharedState.mMediaPlayer.setSurface(TransformApplicator.wrapSurface(
+                        SharedState.mSurface, "c1-tex", newPath,
+                        SharedState.toast_content, null));
                 SharedState.mMediaPlayer.setVolume(playSound ? 1f : 0f, playSound ? 1f : 0f);
                 SharedState.mMediaPlayer.setLooping(true);
                 SharedState.mMediaPlayer.setOnPreparedListener(mp -> SharedState.mMediaPlayer.start());
@@ -539,11 +551,15 @@ public class Camera1Handler {
         if (SharedState.ori_holder != null) {
             if (SharedState.mplayer1 == null) {
                 SharedState.mplayer1 = new MediaPlayer();
-                SharedState.mplayer1.setSurface(SharedState.ori_holder.getSurface());
+                SharedState.mplayer1.setSurface(TransformApplicator.wrapSurface(
+                        SharedState.ori_holder.getSurface(), "c1-holder", newPath,
+                        SharedState.toast_content, null));
             }
             try {
                 SharedState.mplayer1.reset();
-                SharedState.mplayer1.setSurface(SharedState.ori_holder.getSurface());
+                SharedState.mplayer1.setSurface(TransformApplicator.wrapSurface(
+                        SharedState.ori_holder.getSurface(), "c1-holder", newPath,
+                        SharedState.toast_content, null));
                 SharedState.mplayer1.setVolume(playSound ? 1f : 0f, playSound ? 1f : 0f);
                 SharedState.mplayer1.setLooping(true);
                 SharedState.mplayer1.setOnPreparedListener(mp -> SharedState.mplayer1.start());
@@ -593,6 +609,7 @@ public class Camera1Handler {
     // ======================== Stop all players (called when module is disabled) ========================
     public static void stopAllPlayers() {
         XposedBridge.log("[Rinigan]Camera1 stopping all players/decoders");
+        TransformApplicator.releaseAll();
         try {
             if (SharedState.mMediaPlayer != null) {
                 SharedState.mMediaPlayer.stop();

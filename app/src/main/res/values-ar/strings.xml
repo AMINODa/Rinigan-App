@@ -107,4 +107,39 @@
     <string name="notif_action_exit">خروج</string>
     <string name="notif_channel_name">خدمة تحكم rinigan</string>
     <string name="notif_channel_desc">يعرض أدوات تبديل فيديو rinigan</string>
+
+    <!-- محرك التحويل حسب التطبيق -->
+    <string name="nav_perapp">لكل تطبيق</string>
+    <string name="perapp_section_engine">محرك التحويل</string>
+    <string name="perapp_engine_enable">التحويل حسب التطبيق</string>
+    <string name="perapp_engine_enable_desc">يملئ تلقائيًا توجيه الفيديو البديل ونسبة الأبعاد والانعكاس لكل تطبيق مكالمات</string>
+    <string name="perapp_universal_desc">القاعدة العامة: كل تطبيق غير مصنف يحصل على بث عمودي كامل الإطار بنمط FIT_CENTER (أشرطة سوداء عند اختلاف نسب الأبعاد فقط)</string>
+    <string name="perapp_section_custom">الملفات اللاتة من المستخدم (أعلى أولوية)</string>
+    <string name="perapp_section_builtin">الإعدادات الجاهزة</string>
+    <string name="perapp_empty">لا توجد ملفات تعريف مخصصة بعد. أضف واحدة أو استورد JSON.</string>
+    <string name="perapp_add">إضافة ملف تعريف</string>
+    <string name="perapp_json">استيراد / تصدير JSON</string>
+    <string name="perapp_edit">تعديل</string>
+    <string name="perapp_delete">حذف</string>
+    <string name="perapp_save">حفظ</string>
+    <string name="perapp_cancel">إلغاء</string>
+    <string name="perapp_import">استيراد</string>
+    <string name="perapp_badge_custom">مخصص</string>
+    <string name="perapp_badge_builtin">جاهز</string>
+    <string name="perapp_rotation">الدوران (مع عقارب الساعة)</string>
+    <string name="perapp_scale_mode">نمط التحجيم</string>
+    <string name="perapp_scale_fit">FIT_CENTER — الإطار كاملًا مع أشرطة عند الحاجة</string>
+    <string name="perapp_scale_crop">CENTER_CROP — ملء الشاشة بدون أشرطة سوداء</string>
+    <string name="perapp_scale_stretch">STRETCH — ملء الشاشة مع تجاهل نسبة الأبعاد</string>
+    <string name="perapp_resolution">الدقة الهدف (اختياري)</string>
+    <string name="perapp_resolution_hint">مثال: 1080x1920</string>
+    <string name="perapp_flip_h">انعكاس أفقي</string>
+    <string name="perapp_flip_v">انعكاس رأسي</string>
+    <string name="perapp_normalize">توجيه تلقائي للوضع العمودي</string>
+    <string name="perapp_normalize_desc">يدور الفيديو الأفقي 90° عندما يستهلك التطبيق بوفر عموديًا</string>
+    <string name="perapp_package_hint">اسم الحزمة، مثال: com.whatsapp</string>
+    <string name="perapp_package_invalid">اسم حزمة غير صالح</string>
+    <string name="perapp_prefix_note">ينطبق ملف التعريف أيضًا على الحزمات الفرعية (com.app يشمل com.app.beta)</string>
+    <string name="perapp_json_invalid">JSON غير صالح</string>
+    <string name="perapp_builtin_hint">يتم التعرف تلقائيًا على هذه التطبيقات. تعديل أي منها ينشئ تجاوزًا مخصصًا بنفس اسم الحزمة.</string>
 </resources>

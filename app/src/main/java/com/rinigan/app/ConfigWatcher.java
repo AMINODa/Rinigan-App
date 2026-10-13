@@ -172,6 +172,8 @@ public final class ConfigWatcher {
         boolean oldSound = config.getBoolean(ConfigManager.KEY_PLAY_VIDEO_SOUND, false);
         boolean oldDisable = config.getBoolean(ConfigManager.KEY_DISABLE_MODULE, false);
         boolean oldToast = config.getBoolean(ConfigManager.KEY_DISABLE_TOAST, false);
+        String oldProfiles = config.getString(ConfigManager.KEY_APP_PROFILES, null);
+        boolean oldEngine = config.getBoolean(ConfigManager.KEY_PERAPP_ENGINE_DISABLED, false);
 
         config.updateConfigFromJSON(configJson);
 
@@ -185,8 +187,20 @@ public final class ConfigWatcher {
         boolean newSound = config.getBoolean(ConfigManager.KEY_PLAY_VIDEO_SOUND, false);
         boolean newDisable = config.getBoolean(ConfigManager.KEY_DISABLE_MODULE, false);
         boolean newToast = config.getBoolean(ConfigManager.KEY_DISABLE_TOAST, false);
+        String newProfiles = config.getString(ConfigManager.KEY_APP_PROFILES, null);
+        boolean newEngine = config.getBoolean(ConfigManager.KEY_PERAPP_ENGINE_DISABLED, false);
 
-        boolean mediaChanged = !oldVideo.equals(newVideo) ||
+        boolean profilesChanged = !java.util.Objects.equals(oldProfiles, newProfiles)
+                || (oldEngine != newEngine);
+        if (profilesChanged) {
+            // drop resolved profiles + live relays; hot-swap below re-wraps surfaces
+            TransformApplicator.invalidateCaches();
+            TransformApplicator.releaseAll();
+            LogUtil.log("[CS]config update: transform profiles changed");
+        }
+
+        boolean mediaChanged = profilesChanged ||
+                !oldVideo.equals(newVideo) ||
                 !oldImage.equals(newImage) ||
                 !oldMode.equals(newMode) ||
                 (oldFpd != newFpd) ||

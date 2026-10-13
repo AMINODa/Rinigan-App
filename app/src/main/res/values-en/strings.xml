@@ -107,4 +107,39 @@
     <string name="notif_action_exit">Exit</string>
     <string name="notif_channel_name">Rinigan control service</string>
     <string name="notif_channel_desc">Shows Rinigan video switching controls</string>
+
+    <!-- Per-App Transformation Engine -->
+    <string name="nav_perapp">Per-App</string>
+    <string name="perapp_section_engine">Transformation engine</string>
+    <string name="perapp_engine_enable">Per-app transformation</string>
+    <string name="perapp_engine_enable_desc">Automatically adapt orientation, aspect ratio and mirroring of the replacement video for every calling app</string>
+    <string name="perapp_universal_desc">Universal fallback: any unclassified app gets a portrait-oriented, full-frame FIT_CENTER stream (black bars only when aspect ratios differ)</string>
+    <string name="perapp_section_custom">Custom profiles (highest priority)</string>
+    <string name="perapp_section_builtin">Built-in presets</string>
+    <string name="perapp_empty">No custom profiles yet. Add one or import JSON.</string>
+    <string name="perapp_add">Add profile</string>
+    <string name="perapp_json">Import / export JSON</string>
+    <string name="perapp_edit">Edit</string>
+    <string name="perapp_delete">Delete</string>
+    <string name="perapp_save">Save</string>
+    <string name="perapp_cancel">Cancel</string>
+    <string name="perapp_import">Import</string>
+    <string name="perapp_badge_custom">CUSTOM</string>
+    <string name="perapp_badge_builtin">BUILT-IN</string>
+    <string name="perapp_rotation">Rotation (clockwise)</string>
+    <string name="perapp_scale_mode">Scale mode</string>
+    <string name="perapp_scale_fit">FIT_CENTER \u2014 full frame, letterbox if needed</string>
+    <string name="perapp_scale_crop">CENTER_CROP \u2014 fill screen, no black bars</string>
+    <string name="perapp_scale_stretch">STRETCH \u2014 fill screen, ignore aspect ratio</string>
+    <string name="perapp_resolution">Target resolution (optional)</string>
+    <string name="perapp_resolution_hint">e.g. 1080x1920</string>
+    <string name="perapp_flip_h">Flip horizontally</string>
+    <string name="perapp_flip_v">Flip vertically</string>
+    <string name="perapp_normalize">Auto portrait normalization</string>
+    <string name="perapp_normalize_desc">Rotates landscape videos by 90\u00b0 when the app consumes a portrait buffer</string>
+    <string name="perapp_package_hint">Package name, e.g. com.whatsapp</string>
+    <string name="perapp_package_invalid">Invalid package name</string>
+    <string name="perapp_prefix_note">The profile also matches sub-packages (com.app covers com.app.beta)</string>
+    <string name="perapp_json_invalid">Invalid JSON</string>
+    <string name="perapp_builtin_hint">Overrides for these apps are honored automatically. Editing one creates a custom override with the same package name.</string>
 </resources>

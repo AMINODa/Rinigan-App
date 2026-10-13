@@ -53,6 +53,11 @@ public class ConfigManager {
     public static final String REPLACE_MODE_VIDEO = "video";
     public static final String REPLACE_MODE_IMAGE = "image";
     public static final String KEY_VIDEO_ROTATION_OFFSET = "video_rotation_offset";
+    // ===== Per-app transformation engine =====
+    /** Custom per-app profiles: {"pkg": {rotation, scaleMode, targetResolution, ...}} */
+    public static final String KEY_APP_PROFILES = "app_profiles";
+    /** Master switch of the transformation engine (false = engine active). */
+    public static final String KEY_PERAPP_ENGINE_DISABLED = "perapp_engine_disabled";
     public static final String KEY_ENABLE_PHOTO_FAKE = "enable_photo_fake";
     public static final String KEY_ENABLE_WHATSAPP_CAMERA2_COMPAT = "enable_whatsapp_camera2_compat";
     public static final String KEY_MEDIA_SOURCE_TYPE = "media_source_type";

@@ -10,6 +10,30 @@ public class HookGuards {
     private static ConfigManager configManager;
     private static volatile boolean configDirty = true;
 
+    /**
+     * True when running inside the Rinigan app itself (UI / provider process).
+     * The module never hooks its own package, but this guard also protects the
+     * transformation engine from resolving a profile for our own camera use.
+     */
+    public static boolean isAppProcess() {
+        try {
+            return BuildConfig.APPLICATION_ID.equals(currentProcessPackage());
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static String currentProcessPackage() {
+        // in hooked processes SharedState.toast_content is the host app context
+        try {
+            if (SharedState.toast_content != null) {
+                return SharedState.toast_content.getPackageName();
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
     public static void setConfigManager(ConfigManager cm) {
         configManager = cm;
         configDirty = false;
