@@ -146,6 +146,10 @@ public class Camera1Handler {
                     if (SharedState.mMediaPlayer == null) {
                         SharedState.mMediaPlayer = new MediaPlayer();
                     } else {
+                        // v6.2 fix: cancel pending stream retries BEFORE release —
+                        // without this, watchdog retries kept running against a released
+                        // player and spuriously triggered the local-fallback swap.
+                        StreamPlayer.cancel(SharedState.mMediaPlayer);
                         SharedState.mMediaPlayer.release();
                         SharedState.mMediaPlayer = new MediaPlayer();
                     }
@@ -305,9 +309,8 @@ public class Camera1Handler {
             protected void beforeHookedMethod(MethodHookParam paramd) throws Throwable {
                 Camera localcam = (android.hardware.Camera) paramd.args[1];
                 if (localcam.equals(SharedState.camera_onPreviewFrame)) {
-                    while (SharedState.data_buffer == null) {
-                        // wait
-                    }
+                    // v6.2: bounded wait — a missing frame must NEVER freeze the host app
+                    awaitFirstFrame(5000);
                     TransformApplicator.transformNv21IntoPreview(SharedState.data_buffer,
                             SharedState.currentVideoPath,
                             (byte[]) paramd.args[0], SharedState.mwidth, SharedState.mhight,
@@ -331,17 +334,32 @@ public class Camera1Handler {
                     }
                     if (finalNeed_stop == 1) return;
 
-                    if (SharedState.hw_decode_obj != null) {
-                        SharedState.hw_decode_obj.stopDecode();
+                    // v6.2: web-page/HLS links cannot be MediaExtractor-decoded — the
+                    // tap bridge renders them (WebView / MediaPlayer) into NV21 frames
+                    // delivered through SharedState.data_buffer instead.
+                    boolean needsTapBridge = src.isStream()
+                            && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+                    if (needsTapBridge) {
+                        if (SharedState.hw_decode_obj != null) {
+                            SharedState.hw_decode_obj.stopDecode();
+                            SharedState.hw_decode_obj = null;
+                        }
+                        if (SharedState.mwidth > 0 && SharedState.mhight > 0) {
+                            FrameTapBridge.startBuffer("c1-cb", src,
+                                    SharedState.mwidth, SharedState.mhight);
+                        }
+                    } else {
+                        FrameTapBridge.stop("c1-cb");
+                        if (SharedState.hw_decode_obj != null) {
+                            SharedState.hw_decode_obj.stopDecode();
+                        }
+                        SharedState.hw_decode_obj = new VideoToFrames();
+                        SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
+                        SharedState.currentVideoPath = src.mediaRef();
+                        // decode() accepts a live http(s) URL as well as a local path
+                        SharedState.hw_decode_obj.decode(src.mediaRef());
                     }
-                    SharedState.hw_decode_obj = new VideoToFrames();
-                    SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
-                    SharedState.currentVideoPath = src.mediaRef();
-                    // v6.1: decode() accepts a live http(s) URL as well as a local path
-                    SharedState.hw_decode_obj.decode(src.mediaRef());
-                    while (SharedState.data_buffer == null) {
-                        // wait
-                    }
+                    awaitFirstFrame(5000);
                     TransformApplicator.transformNv21IntoPreview(SharedState.data_buffer,
                             SharedState.currentVideoPath,
                             (byte[]) paramd.args[0], SharedState.mwidth, SharedState.mhight,
@@ -429,6 +447,26 @@ public class Camera1Handler {
     }
 
     // ======================== Utility methods ========================
+
+    /**
+     * v6.2 — bounded wait for the first NV21 frame. The legacy code spun forever
+     * on {@code while (data_buffer == null)}; if the source never produced a frame
+     * (dead link, unsupported container) the host app's camera thread hung. A
+     * bounded wait degrades to the real camera frame instead of freezing.
+     */
+    private static boolean awaitFirstFrame(long timeoutMs) {
+        long deadline = android.os.SystemClock.elapsedRealtime() + timeoutMs;
+        while (SharedState.data_buffer == null
+                && android.os.SystemClock.elapsedRealtime() < deadline) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                return false;
+            }
+        }
+        return SharedState.data_buffer != null;
+    }
+
     private static Bitmap getBMP(String file) throws Throwable {
         return BitmapFactory.decodeFile(file);
     }
@@ -538,17 +576,32 @@ public class Camera1Handler {
         // decoder — rebuilt if nulled by stopAllPlayers
         if (SharedState.camera_onPreviewFrame != null) {
             try {
-                if (SharedState.hw_decode_obj == null) {
-                    SharedState.hw_decode_obj = new VideoToFrames();
-                    SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
+                // v6.2: pages/HLS go through the tap bridge (NV21 buffer mode)
+                boolean needsTapBridge = src.isStream()
+                        && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+                if (needsTapBridge) {
+                    if (SharedState.hw_decode_obj != null) {
+                        SharedState.hw_decode_obj.stopDecode();
+                        SharedState.hw_decode_obj = null;
+                    }
+                    if (SharedState.mwidth > 0 && SharedState.mhight > 0) {
+                        FrameTapBridge.startBuffer("c1-cb", src,
+                                SharedState.mwidth, SharedState.mhight);
+                    }
                 } else {
-                    SharedState.hw_decode_obj.stopDecode();
-                    SharedState.hw_decode_obj = new VideoToFrames();
-                    SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
+                    FrameTapBridge.stop("c1-cb");
+                    if (SharedState.hw_decode_obj == null) {
+                        SharedState.hw_decode_obj = new VideoToFrames();
+                        SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
+                    } else {
+                        SharedState.hw_decode_obj.stopDecode();
+                        SharedState.hw_decode_obj = new VideoToFrames();
+                        SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
+                    }
+                    if (resumePos > 0) SharedState.hw_decode_obj.seekTo(resumePos);
+                    if (SharedState.playPaused) SharedState.hw_decode_obj.setPaused(true);
+                    SharedState.hw_decode_obj.decode(newRef);
                 }
-                if (resumePos > 0) SharedState.hw_decode_obj.seekTo(resumePos);
-                if (SharedState.playPaused) SharedState.hw_decode_obj.setPaused(true);
-                SharedState.hw_decode_obj.decode(newRef);
             } catch (Throwable t) {
                 XposedBridge.log("[Rinigan]Camera1 hot-swap hw_decode failed: " + t);
             }
@@ -576,6 +629,10 @@ public class Camera1Handler {
         XposedBridge.log("[Rinigan]Camera1 stopping all players/decoders");
         StreamPlayer.cancelAll();
         TransformApplicator.releaseAll();
+        // v6.2: stop this camera family's link display environments & bridges
+        WebViewStreamer.stop("c1-tex");
+        WebViewStreamer.stop("c1-holder");
+        FrameTapBridge.stop("c1-cb");
         try {
             if (SharedState.mMediaPlayer != null) {
                 SharedState.mMediaPlayer.stop();

@@ -91,9 +91,9 @@
     <string name="select_from_storage">اختيار من التخزين (مرجع)</string>
 
     <!-- Video Link (v6) -->
-    <string name="manage_add_link">إضافة رابط فيديو مباشر</string>
-    <string name="link_dialog_title">رابط فيديو مباشر</string>
-    <string name="link_dialog_desc">الصق رابط فيديو (mp4، m3u8…). سيُعرض مباشرةً عبر الإنترنت مكان الكاميرا — بدون تنزيل وبدون شاشة سوداء.</string>
+    <string name="manage_add_link">إضافة رابط مباشر</string>
+    <string name="link_dialog_title">رابط مباشر</string>
+    <string name="link_dialog_desc">الصق أي رابط — موقع إلكتروني، صفحة بث مباشر، أو فيديو مباشر (mp4/m3u8). سيُعرض الرابط مباشرةً مكان الكاميرا — بدون تنزيل وبدون شاشة سوداء.</string>
     <string name="link_dialog_hint">رابط الفيديو</string>
     <string name="link_dialog_url_placeholder">https://example.com/video.mp4</string>
     <string name="link_dialog_add">إضافة</string>

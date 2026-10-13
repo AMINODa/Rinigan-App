@@ -99,9 +99,34 @@ public final class StreamPlayer {
                             final float volume, final String tag, final Surface surface) {
         if (player == null || source == null || !source.isActive()) return;
 
+        // ---- v6.2: PAGE links (websites, watch pages) — the EXACT root cause of the
+        // black camera in v6.1. MediaPlayer cannot play a web page; the link must be
+        // rendered in a real display environment ({@link WebViewStreamer}) instead.
+        if (source.isStream() && LinkType.isPageUrl(source.url)) {
+            XposedBridge.log(TAG + "[" + tag + "]PAGE link → display environment: " + source.mediaRef());
+            StreamPlayer.cancel(player); // this player stays idle; env owns rendering
+            Runnable onFailure = () -> {
+                XposedBridge.log(TAG + "[" + tag + "]page env failed → local fallback");
+                if (!fallbackToLocal(source, volume > 0f, tag) && WebViewStreamer.activeCount() == 0) {
+                    XposedBridge.log(TAG + "[" + tag + "]no local fallback — retrying page env in 15s");
+                    handler().postDelayed(() -> {
+                        if (ATTEMPTS.containsKey(System.identityHashCode(player))) return;
+                        WebViewStreamer.startPreview(tag, source.url, surface, volume > 0f,
+                                () -> fallbackToLocal(source, volume > 0f, tag));
+                    }, 15000);
+                }
+            };
+            boolean started = WebViewStreamer.startPreview(tag, source.url, surface,
+                    volume > 0f, onFailure);
+            if (!started) onFailure.run();
+            return;
+        }
+
         if (!source.isStream()) {
             // ---- classic local playback ----
             ATTEMPTS.remove(System.identityHashCode(player));
+            // v6.2: switching away from a page source — kill this tag's display env
+            WebViewStreamer.stop(tag);
             try {
                 try {
                     player.reset();
@@ -129,6 +154,8 @@ public final class StreamPlayer {
         }
 
         // ---- LIVE streaming ----
+        // v6.2: switching away from a page source — kill this tag's display env
+        WebViewStreamer.stop(tag);
         final int id = System.identityHashCode(player);
         final Attempt attempt = new Attempt(tag, source, true, volume, surface);
         ATTEMPTS.put(id, attempt);
@@ -219,15 +246,28 @@ public final class StreamPlayer {
                 });
                 player.prepareAsync();
 
-                // watchdog: prepared but never started (bad URL / network black hole)
+                // watchdog: prepared but never started (bad URL / network black hole).
+                // v6.2 fix: a SLOW network used to trigger an endless reset loop because
+                // the watchdog fired while prepareAsync was still in flight. Now:
+                //  - not prepared yet  → retry (connection dead/stuck)
+                //  - prepared, not started → 5s extra grace, then retry
                 long timeoutMs = streamTimeoutMs();
                 Runnable watch = () -> {
                     if (attempt.cancelled || ATTEMPTS.get(id) != attempt) return;
-                    if (!attempt.started) {
-                        XposedBridge.log(TAG + "[" + attempt.tag + "]watchdog: no playback after "
-                                + timeoutMs + "ms (prepared=" + attempt.prepared + ")");
-                        scheduleRetry(player, attempt, attemptNo, "timeout");
+                    if (attempt.started) return;
+                    if (attempt.prepared) {
+                        XposedBridge.log(TAG + "[" + attempt.tag + "]watchdog: prepared but not started, +5s grace");
+                        handler().postDelayed(() -> {
+                            if (attempt.cancelled || ATTEMPTS.get(id) != attempt) return;
+                            if (!attempt.started) {
+                                scheduleRetry(player, attempt, attemptNo, "prepared-not-started");
+                            }
+                        }, 5000);
+                        return;
                     }
+                    XposedBridge.log(TAG + "[" + attempt.tag + "]watchdog: no playback after "
+                            + timeoutMs + "ms (prepared=" + attempt.prepared + ")");
+                    scheduleRetry(player, attempt, attemptNo, "timeout");
                 };
                 attempt.watchRunnable = watch;
                 handler().postDelayed(watch, timeoutMs + 2000);
@@ -312,29 +352,37 @@ public final class StreamPlayer {
      * a permanently black camera.
      */
     private static boolean fallbackToLocal(final Attempt attempt) {
+        return fallbackToLocal(attempt.source, attempt.playSound, attempt.tag);
+    }
+
+    /**
+     * v6.2 — shared fallback used by both MediaPlayer attempts and the page
+     * display environment: rebuild the pipeline on the local video file.
+     */
+    private static boolean fallbackToLocal(VideoSource source, boolean playSound, String tag) {
         try {
             ConfigManager config = HookGuards.getConfig();
             if (!config.getBoolean(ConfigManager.KEY_STREAM_LOCAL_FALLBACK, true)) {
-                XposedBridge.log(TAG + "[" + attempt.tag + "]local fallback disabled by user");
+                XposedBridge.log(TAG + "[" + tag + "]local fallback disabled by user");
                 return false;
             }
-            File local = attempt.source.file;
+            File local = source.file;
             if (local == null || !local.exists()) {
-                XposedBridge.log(TAG + "[" + attempt.tag + "]no local fallback video available");
+                XposedBridge.log(TAG + "[" + tag + "]no local fallback video available");
                 return false;
             }
-            XposedBridge.log(TAG + "[" + attempt.tag + "]fallback → local video " + local.getName());
+            XposedBridge.log(TAG + "[" + tag + "]fallback → local video " + local.getName());
             // Route through the normal hot-swap so the whole pipeline rebuilds on the
             // local source and all relays keep working.
             VideoSource localSrc = VideoSource.local(local);
-            if (attempt.tag != null && attempt.tag.startsWith("c1")) {
-                Camera1Handler.swapToLocal(localSrc, attempt.playSound);
+            if (tag != null && tag.startsWith("c1")) {
+                Camera1Handler.swapToLocal(localSrc, playSound);
             } else {
-                Camera2SessionHook.swapToLocal(localSrc, attempt.playSound);
+                Camera2SessionHook.swapToLocal(localSrc, playSound);
             }
             return true;
         } catch (Throwable t) {
-            XposedBridge.log(TAG + "[" + attempt.tag + "]fallback failed: " + t);
+            XposedBridge.log(TAG + "[" + tag + "]fallback failed: " + t);
             return false;
         }
     }

@@ -91,9 +91,9 @@
     <string name="select_from_storage">Select from storage (reference)</string>
 
     <!-- Video Link (v6) -->
-    <string name="manage_add_link">Add live video link</string>
-    <string name="link_dialog_title">Live video link</string>
-    <string name="link_dialog_desc">Paste a video link (mp4, m3u8…). It plays LIVE over the internet in place of the camera — nothing is downloaded, no black screen.</string>
+    <string name="manage_add_link">Add live link</string>
+    <string name="link_dialog_title">Live link</string>
+    <string name="link_dialog_desc">Paste ANY link — a website, a live-stream page, or a direct video (mp4/m3u8). The link is rendered LIVE in place of the camera — nothing is downloaded, no black screen.</string>
     <string name="link_dialog_hint">Video link</string>
     <string name="link_dialog_url_placeholder">https://example.com/video.mp4</string>
     <string name="link_dialog_add">Add</string>

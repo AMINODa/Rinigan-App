@@ -40,6 +40,11 @@ public class Camera2SessionHook {
                     SharedState.c2_player.release();
                     SharedState.c2_player = null;
                 }
+                // v6.2: stop this camera family's link display environments & bridges
+                WebViewStreamer.stop("c2-p1");
+                WebViewStreamer.stop("c2-p2");
+                FrameTapBridge.stop("c2-r1");
+                FrameTapBridge.stop("c2-r2");
                 if (SharedState.c2_hw_decode_obj_1 != null) {
                     SharedState.c2_hw_decode_obj_1.stopDecode();
                     SharedState.c2_hw_decode_obj_1 = null;
@@ -268,50 +273,76 @@ public class Camera2SessionHook {
 
         // Reader Surface 1
         if (SharedState.c2_reader_Surfcae != null) {
-            if (SharedState.c2_hw_decode_obj != null) {
-                SharedState.c2_hw_decode_obj.stopDecode();
-                SharedState.c2_hw_decode_obj = null;
-            }
-            SharedState.c2_hw_decode_obj = new VideoToFrames();
-            try {
-                if (SharedState.imageReaderFormat == 256) {
-                    SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.JPEG);
-                } else {
-                    SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.NV21);
+            // v6.2: pages/HLS cannot be MediaExtractor-decoded — the tap bridge
+            // produces the peer's frames (WebView rendering / MediaPlayer tap).
+            boolean needsTapBridge = src.isStream()
+                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            if (needsTapBridge) {
+                if (SharedState.c2_hw_decode_obj != null) {
+                    SharedState.c2_hw_decode_obj.stopDecode();
+                    SharedState.c2_hw_decode_obj = null;
                 }
-                SharedState.c2_hw_decode_obj.set_surfcae(TransformApplicator.wrapSurface(
-                        SharedState.c2_reader_Surfcae, "c2-r1", newRef,
-                        SharedState.toast_content, null));
-                if (resumePos > 0) SharedState.c2_hw_decode_obj.seekTo(resumePos);
-                if (SharedState.playPaused) SharedState.c2_hw_decode_obj.setPaused(true);
-                // v6.1: newRef may be a live http(s) URL — MediaExtractor streams it directly
-                SharedState.c2_hw_decode_obj.decode(newRef);
-            } catch (Throwable throwable) {
-                XposedBridge.log("[Rinigan]" + throwable);
+                FrameTapBridge.startWriter("c2-r1", src, SharedState.c2_reader_Surfcae,
+                        SharedState.imageReaderFormat == 256);
+            } else {
+                FrameTapBridge.stop("c2-r1");
+                if (SharedState.c2_hw_decode_obj != null) {
+                    SharedState.c2_hw_decode_obj.stopDecode();
+                    SharedState.c2_hw_decode_obj = null;
+                }
+                SharedState.c2_hw_decode_obj = new VideoToFrames();
+                try {
+                    if (SharedState.imageReaderFormat == 256) {
+                        SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.JPEG);
+                    } else {
+                        SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.NV21);
+                    }
+                    SharedState.c2_hw_decode_obj.set_surfcae(TransformApplicator.wrapSurface(
+                            SharedState.c2_reader_Surfcae, "c2-r1", newRef,
+                            SharedState.toast_content, null));
+                    if (resumePos > 0) SharedState.c2_hw_decode_obj.seekTo(resumePos);
+                    if (SharedState.playPaused) SharedState.c2_hw_decode_obj.setPaused(true);
+                    // v6.1: newRef may be a live http(s) URL — MediaExtractor streams it directly
+                    SharedState.c2_hw_decode_obj.decode(newRef);
+                } catch (Throwable throwable) {
+                    XposedBridge.log("[Rinigan]" + throwable);
+                }
             }
         }
 
         // Reader Surface 2
         if (SharedState.c2_reader_Surfcae_1 != null) {
-            if (SharedState.c2_hw_decode_obj_1 != null) {
-                SharedState.c2_hw_decode_obj_1.stopDecode();
-                SharedState.c2_hw_decode_obj_1 = null;
-            }
-            SharedState.c2_hw_decode_obj_1 = new VideoToFrames();
-            try {
-                if (SharedState.imageReaderFormat == 256) {
-                    SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.JPEG);
-                } else {
-                    SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.NV21);
+            boolean needsTapBridge2 = src.isStream()
+                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            if (needsTapBridge2) {
+                if (SharedState.c2_hw_decode_obj_1 != null) {
+                    SharedState.c2_hw_decode_obj_1.stopDecode();
+                    SharedState.c2_hw_decode_obj_1 = null;
                 }
-                SharedState.c2_hw_decode_obj_1.set_surfcae(TransformApplicator.wrapSurface(
-                        SharedState.c2_reader_Surfcae_1, "c2-r2", newRef,
-                        SharedState.toast_content, null));
-                if (resumePos > 0) SharedState.c2_hw_decode_obj_1.seekTo(resumePos);
-                if (SharedState.playPaused) SharedState.c2_hw_decode_obj_1.setPaused(true);
-                SharedState.c2_hw_decode_obj_1.decode(newRef);
-            } catch (Throwable throwable) {
-                XposedBridge.log("[Rinigan]" + throwable);
+                FrameTapBridge.startWriter("c2-r2", src, SharedState.c2_reader_Surfcae_1,
+                        SharedState.imageReaderFormat == 256);
+            } else {
+                FrameTapBridge.stop("c2-r2");
+                if (SharedState.c2_hw_decode_obj_1 != null) {
+                    SharedState.c2_hw_decode_obj_1.stopDecode();
+                    SharedState.c2_hw_decode_obj_1 = null;
+                }
+                SharedState.c2_hw_decode_obj_1 = new VideoToFrames();
+                try {
+                    if (SharedState.imageReaderFormat == 256) {
+                        SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.JPEG);
+                    } else {
+                        SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.NV21);
+                    }
+                    SharedState.c2_hw_decode_obj_1.set_surfcae(TransformApplicator.wrapSurface(
+                            SharedState.c2_reader_Surfcae_1, "c2-r2", newRef,
+                            SharedState.toast_content, null));
+                    if (resumePos > 0) SharedState.c2_hw_decode_obj_1.seekTo(resumePos);
+                    if (SharedState.playPaused) SharedState.c2_hw_decode_obj_1.setPaused(true);
+                    SharedState.c2_hw_decode_obj_1.decode(newRef);
+                } catch (Throwable throwable) {
+                    XposedBridge.log("[Rinigan]" + throwable);
+                }
             }
         }
 
@@ -411,51 +442,76 @@ public class Camera2SessionHook {
 
         // Reader Surface 1 — rebuilt if nulled by stopAllPlayers
         if (SharedState.c2_reader_Surfcae != null) {
-            try {
-                if (SharedState.c2_hw_decode_obj == null) {
-                    SharedState.c2_hw_decode_obj = new VideoToFrames();
-                } else {
+            // v6.2: pages/HLS go through the tap bridge (peer frames for every link type)
+            boolean needsTapBridge = src.isStream()
+                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            if (needsTapBridge) {
+                if (SharedState.c2_hw_decode_obj != null) {
                     SharedState.c2_hw_decode_obj.stopDecode();
-                    SharedState.c2_hw_decode_obj = new VideoToFrames();
+                    SharedState.c2_hw_decode_obj = null;
                 }
-                if (SharedState.imageReaderFormat == 256) {
-                    SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.JPEG);
-                } else {
-                    SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.NV21);
+                FrameTapBridge.startWriter("c2-r1", src, SharedState.c2_reader_Surfcae,
+                        SharedState.imageReaderFormat == 256);
+            } else {
+                FrameTapBridge.stop("c2-r1");
+                try {
+                    if (SharedState.c2_hw_decode_obj == null) {
+                        SharedState.c2_hw_decode_obj = new VideoToFrames();
+                    } else {
+                        SharedState.c2_hw_decode_obj.stopDecode();
+                        SharedState.c2_hw_decode_obj = new VideoToFrames();
+                    }
+                    if (SharedState.imageReaderFormat == 256) {
+                        SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.JPEG);
+                    } else {
+                        SharedState.c2_hw_decode_obj.setSaveFrames("null", OutputImageFormat.NV21);
+                    }
+                    SharedState.c2_hw_decode_obj.set_surfcae(TransformApplicator.wrapSurface(
+                            SharedState.c2_reader_Surfcae, "c2-r1", newRef,
+                            SharedState.toast_content, null));
+                    if (resumePos > 0) SharedState.c2_hw_decode_obj.seekTo(resumePos);
+                    if (SharedState.playPaused) SharedState.c2_hw_decode_obj.setPaused(true);
+                    SharedState.c2_hw_decode_obj.decode(newRef);
+                } catch (Throwable t) {
+                    XposedBridge.log("[Rinigan]Hot-swap reader1 failed: " + t);
                 }
-                SharedState.c2_hw_decode_obj.set_surfcae(TransformApplicator.wrapSurface(
-                        SharedState.c2_reader_Surfcae, "c2-r1", newRef,
-                        SharedState.toast_content, null));
-                if (resumePos > 0) SharedState.c2_hw_decode_obj.seekTo(resumePos);
-                if (SharedState.playPaused) SharedState.c2_hw_decode_obj.setPaused(true);
-                SharedState.c2_hw_decode_obj.decode(newRef);
-            } catch (Throwable t) {
-                XposedBridge.log("[Rinigan]Hot-swap reader1 failed: " + t);
             }
         }
 
         // Reader Surface 2
         if (SharedState.c2_reader_Surfcae_1 != null) {
-            try {
-                if (SharedState.c2_hw_decode_obj_1 == null) {
-                    SharedState.c2_hw_decode_obj_1 = new VideoToFrames();
-                } else {
+            boolean needsTapBridge2 = src.isStream()
+                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            if (needsTapBridge2) {
+                if (SharedState.c2_hw_decode_obj_1 != null) {
                     SharedState.c2_hw_decode_obj_1.stopDecode();
-                    SharedState.c2_hw_decode_obj_1 = new VideoToFrames();
+                    SharedState.c2_hw_decode_obj_1 = null;
                 }
-                if (SharedState.imageReaderFormat == 256) {
-                    SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.JPEG);
-                } else {
-                    SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.NV21);
+                FrameTapBridge.startWriter("c2-r2", src, SharedState.c2_reader_Surfcae_1,
+                        SharedState.imageReaderFormat == 256);
+            } else {
+                FrameTapBridge.stop("c2-r2");
+                try {
+                    if (SharedState.c2_hw_decode_obj_1 == null) {
+                        SharedState.c2_hw_decode_obj_1 = new VideoToFrames();
+                    } else {
+                        SharedState.c2_hw_decode_obj_1.stopDecode();
+                        SharedState.c2_hw_decode_obj_1 = new VideoToFrames();
+                    }
+                    if (SharedState.imageReaderFormat == 256) {
+                        SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.JPEG);
+                    } else {
+                        SharedState.c2_hw_decode_obj_1.setSaveFrames("null", OutputImageFormat.NV21);
+                    }
+                    SharedState.c2_hw_decode_obj_1.set_surfcae(TransformApplicator.wrapSurface(
+                            SharedState.c2_reader_Surfcae_1, "c2-r2", newRef,
+                            SharedState.toast_content, null));
+                    if (resumePos > 0) SharedState.c2_hw_decode_obj_1.seekTo(resumePos);
+                    if (SharedState.playPaused) SharedState.c2_hw_decode_obj_1.setPaused(true);
+                    SharedState.c2_hw_decode_obj_1.decode(newRef);
+                } catch (Throwable t) {
+                    XposedBridge.log("[Rinigan]Hot-swap reader2 failed: " + t);
                 }
-                SharedState.c2_hw_decode_obj_1.set_surfcae(TransformApplicator.wrapSurface(
-                        SharedState.c2_reader_Surfcae_1, "c2-r2", newRef,
-                        SharedState.toast_content, null));
-                if (resumePos > 0) SharedState.c2_hw_decode_obj_1.seekTo(resumePos);
-                if (SharedState.playPaused) SharedState.c2_hw_decode_obj_1.setPaused(true);
-                SharedState.c2_hw_decode_obj_1.decode(newRef);
-            } catch (Throwable t) {
-                XposedBridge.log("[Rinigan]Hot-swap reader2 failed: " + t);
             }
         }
 
@@ -505,6 +561,11 @@ public class Camera2SessionHook {
         XposedBridge.log("[Rinigan]Camera2 stopping all players/decoders");
         StreamPlayer.cancelAll();
         TransformApplicator.releaseAll();
+        // v6.2: stop this camera family's link display environments & bridges
+        WebViewStreamer.stop("c2-p1");
+        WebViewStreamer.stop("c2-p2");
+        FrameTapBridge.stop("c2-r1");
+        FrameTapBridge.stop("c2-r2");
         try {
             if (SharedState.c2_player != null) {
                 SharedState.c2_player.stop();

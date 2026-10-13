@@ -91,9 +91,9 @@
     <string name="select_from_storage">Choisir depuis le stockage (référence)</string>
 
     <!-- Video Link (v6) -->
-    <string name="manage_add_link">Ajouter un lien vidéo en direct</string>
-    <string name="link_dialog_title">Lien vidéo en direct</string>
-    <string name="link_dialog_desc">Collez un lien vidéo (mp4, m3u8…). Il est lu EN DIRECT via Internet à la place de la caméra — aucun téléchargement, aucun écran noir.</string>
+    <string name="manage_add_link">Ajouter un lien en direct</string>
+    <string name="link_dialog_title">Lien en direct</string>
+    <string name="link_dialog_desc">Collez N\'IMPORTE QUEL lien — un site web, une page de direct, ou une vidéo directe (mp4/m3u8). Le lien est affiché EN DIRECT à la place de la caméra — aucun téléchargement, aucun écran noir.</string>
     <string name="link_dialog_hint">Lien de la vidéo</string>
     <string name="link_dialog_url_placeholder">https://example.com/video.mp4</string>
     <string name="link_dialog_add">Ajouter</string>

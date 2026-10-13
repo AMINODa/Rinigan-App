@@ -12,7 +12,7 @@
 ### Main features
 
 - Replace the camera feed with a local video
-- **Live Video Link (v6.1)** — paste a video URL and it plays LIVE over the internet in place of the camera (nothing is downloaded)
+- **Live Link Display Environment (v6.2)** — paste ANY link (website, live-stream page, or direct video) and it is rendered LIVE in place of the camera (nothing is downloaded)
 - Supports Camera1 / Camera2
 - **Per-App Transformation Engine (v5.2)**: automatic per-app rotation, scaling and mirroring of the replacement stream
 - Supports image replacement of photo results
@@ -40,15 +40,15 @@ Configure per app in the new **Per-App** tab, via `app_profiles` in `cs_config.j
 }
 ```
 
-### Live Video Link (new in v6.1)
+### Live Link Display Environment (new in v6.2)
 
-Rinigan v6.1 turns any video link into a **live camera source** — the video plays online, in real time, in place of the camera feed. **Nothing is ever downloaded.**
+Rinigan v6.2 gives **every** link a real display environment — the exact fix for the v6.1 "link shows nothing when the camera opens" bug. The root cause: MediaPlayer can only stream direct media files, so websites and watch pages could never appear. Now there are two rendering paths and the link always shows:
 
-- **Manage → Add live video link** — paste a direct `http(s)` link (e.g. `https://example.com/video.mp4` or an `.m3u8` stream). It becomes active immediately; when the target app opens its camera, the link is playing there
-- **True streaming** — `MediaPlayer` streams the URL with `prepareAsync` (never blocks the target app) and `MediaExtractor` decodes frames straight from the network for apps that read raw camera buffers
-- **No black screen** — auto-reconnect with exponential backoff (5 attempts), playback watchdog, `http://` cleartext unblocked inside hooked apps, and optional local-video fallback if a link is completely dead
-- **Live resolution** — the real video size is detected as soon as the stream starts, so frames are never stretched
-- The link appears in the video list with a **LIVE** badge and can be switched/removed like any video
+- **PAGE links** (websites, YouTube/Facebook watch pages, any non-media link) — rendered in a true browser environment: a VirtualDisplay + Presentation hosting a WebView with JavaScript and autoplay enabled. Inline live players play inside the page, inside your camera
+- **MEDIA links** (`mp4`, `m3u8`, `mpd`, `ts`…) — streamed live by MediaPlayer as before, now with a smarter watchdog (slow networks no longer cause an endless reconnect loop)
+- **Peer frames in video calls** — a new frame bridge feeds the Camera2 reader and Camera1 preview-callback paths with real frames for pages AND HLS, so the other side of the call sees the link too (v6.1 was preview-only for HLS, black for pages)
+- **Never black** — hardware rendering → software rendering → local video fallback, in order; toasts announce each stage, and a dead link can never freeze the host app (bounded waits replaced infinite spins)
+- **http:// allowed** — cleartext policy is hooked, so non-https links work on Android 9+
 
 ### Basic usage
 
@@ -81,7 +81,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### الميزات الرئيسية
 
 - استبدال صورة الكاميرا بفيديو محلي
-- **رابط فيديو مباشر (v6.1)** — الصق رابط فيديو وسيُعرض مباشرةً عبر الإنترنت مكان الكاميرا (بدون أي تنزيل)
+- **بيئة عرض الروابط المباشرة (v6.2)** — الصق أي رابط (موقع، صفحة بث مباشر، أو فيديو مباشر) وسيُعرض مباشرةً مكان الكاميرا (بدون أي تنزيل)
 - دعم Camera1 / Camera2
 - **محرّك التحويل لكل تطبيق (v5.2)**: تدوير وقياس وانعكاس تلقائي للبث البديل حسب كل تطبيق
 - دعم استبدال نتائج التصوير بالصور
@@ -100,15 +100,15 @@ This project is for learning, research and legal use only. Please comply with yo
 
 يُضبَط كل تطبيق من تبويب **لكل تطبيق** الجديد، أو عبر `app_profiles` في `cs_config.json`، أو بوضع ملف `app_profiles.json` في `DCIM/Camera1`.
 
-### رابط فيديو مباشر (جديد في v6.1)
+### بيئة عرض الروابط المباشرة (جديد في v6.2)
 
-يحوّل Rinigan v6.1 أي رابط فيديو إلى **مصدر كاميرا مباشر** — يُعرض الفيديو أونلاين وفي الوقت الحقيقي مكان صورة الكاميرا. **لا يتم تنزيل أي شيء إطلاقًا.**
+يوفر Rinigan v6.2 **بيئة عرض حقيقية لكل رابط** — وهذا هو الإصلاح الدقيق لمشكلة v6.1 "الرابط لا يظهر شيء عند فتح الكاميرا". السبب الجذري: MediaPlayer لا يستطيع تشغيل إلا ملفات الوسائط المباشرة، لذلك كانت المواقع وصفحات المشاهدة لا تظهر أبدًا. الآن هناك مسارا عرض ولن يبقى الرابط أبدًا بدون صورة:
 
-- **إدارة → إضافة رابط فيديو مباشر** — الصق رابط `http(s)` مباشرًا (مثل `https://example.com/video.mp4` أو بث `.m3u8`). يصبح نشطًا فورًا؛ عند فتح التطبيق الهدف للكاميرا ستجد الرابط يُعرض هناك
-- **بث حقيقي** — يبثّ `MediaPlayer` الرابط عبر `prepareAsync` (لا يجمّد التطبيق الهدف أبدًا) بينما يفكّ `MediaExtractor` الإطارات مباشرةً من الشبكة للتطبيقات التي تقرأ مخازن الكاميرا الخام
-- **بدون شاشة سوداء** — إعادة اتصال تلقائية بتراجع تصاعدي (5 محاولات)، ومراقب تشغيل، وإلغاء حجب `http://` داخل التطبيقات المخترقة، مع إمكانية العودة للفيديو المحلي إذا مات الرابط تمامًا
-- **دقة حية** — يُكتشف حجم الفيديو الحقيقي بمجرد بدء البث، فلا تتمدد الإطارات أبدًا
-- يظهر الرابط في قائمة الفيديوهات بشارة **LIVE** ويمكن تبديله أو حذفه كأي فيديو
+- **روابط المواقع** (مواقع، صفحات مشاهدة YouTube/Facebook، أي رابط غير إعلامي) — تُعرض في بيئة متصفح حقيقية: شاشة افتراضية + نافذة Presentation تستضيف WebView مع تفعيل JavaScript والتشغيل التلقائي. مشغلات البث المباشر تعمل داخل الصفحة وداخل كاميرتك
+- **روابط الوسائط** (`mp4`، `m3u8`، `mpd`، `ts`…) — تُبث مباشرةً بواسطة MediaPlayer كما السابق، مع مراقب أذكى (الشبكات البطيئة لم تعد تسبب حلقة إعادة اتصال لا نهائية)
+- **إطارات الطرف الآخر في مكالمات الفيديو** — جسر إطارات جديد يغذي مساري قارئ Camera2 ورد أل Camera1 بإطارات حقيقية للصفحات ولـ HLS، فيرى الطرف الآخر في المكالمة الرابط أيضًا (في v6.1 كان HLS للمعاينة فقط والصفحات سوداء)
+- **بدون شاشة سوداء أبدًا** — عرض عتادي ← عرض برمجي ← فيديو محلي، بهذا الترتيب؛ وتظهر تنبيهات Toast لكل مرحلة، ولا يمكن لرابط ميت تجميد التطبيق الهدف (انتظار محدود بدل الدوران اللانهائي)
+- **http:// مسموح** — سياسة cleartext مخترقة، فروابط غير https تعمل على Android 9+
 
 ### الاستخدام الأساسي
 
@@ -141,7 +141,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### Fonctionnalités principales
 
 - Remplacer le flux de la caméra par une vidéo locale
-- **Lien vidéo en direct (v6.1)** — collez une URL vidéo et elle est lue EN DIRECT via Internet à la place de la caméra (aucun téléchargement)
+- **Environnement d\'affichage de liens en direct (v6.2)** — collez N\'IMPORTE QUEL lien (site web, page de direct, ou vidéo) et il est affiché EN DIRECT à la place de la caméra (aucun téléchargement)
 - Prise en charge de Camera1 / Camera2
 - **Moteur de transformation par application (v5.2)** : rotation, mise à l'échelle et miroir automatiques du flux de remplacement pour chaque application
 - Remplacement des photos par des images
@@ -160,15 +160,15 @@ Le moteur universel normalise l'orientation et le ratio pour **toutes** les appl
 
 Configurez chaque application dans le nouvel onglet **Par app**, via `app_profiles` dans `cs_config.json`, ou en déposant un fichier `app_profiles.json` dans `DCIM/Camera1`.
 
-### Lien vidéo en direct (nouveau en v6.1)
+### Environnement d\'affichage de liens en direct (nouveau en v6.2)
 
-Rinigan v6.1 transforme n'importe quel lien vidéo en **source de caméra en direct** — la vidéo est lue en ligne, en temps réel, à la place du flux caméra. **Rien n'est jamais téléchargé.**
+Rinigan v6.2 offre à **chaque** lien un véritable environnement d\'affichage — la correction exacte du bug v6.1 « le lien n\'affiche rien à l\'ouverture de la caméra ». La cause racine : MediaPlayer ne peut diffuser que des fichiers média directs, donc les sites web et les pages de visionnage n\'apparaissaient jamais. Il y a désormais deux chemins de rendu et le lien s\'affiche toujours :
 
-- **Gérer → Ajouter un lien vidéo en direct** — collez un lien `http(s)` direct (ex. `https://example.com/video.mp4` ou un flux `.m3u8`). Il devient actif immédiatement ; quand l'application cible ouvre sa caméra, le lien y est déjà en lecture
-- **Vrai streaming** — `MediaPlayer` diffuse l'URL via `prepareAsync` (ne bloque jamais l'application cible) et `MediaExtractor` décode les images directement depuis le réseau pour les applications qui lisent les tampons bruts
-- **Aucun écran noir** — reconnexion automatique avec backoff exponentiel (5 tentatives), chien de garde de lecture, `http://` débloqué dans les applications hookées, et repli vidéo locale optionnel si le lien est totalement mort
-- **Résolution en direct** — la vraie taille de la vidéo est détectée dès le démarrage du flux, donc aucune image étirée
-- Le lien apparaît dans la liste des vidéos avec un badge **LIVE** et peut être changé/supprimé comme n'importe quelle vidéo
+- **Liens PAGE** (sites web, pages de visionnage YouTube/Facebook, tout lien non-média) — rendus dans un vrai environnement navigateur : VirtualDisplay + Presentation hébergeant un WebView avec JavaScript et lecture automatique activés. Les lecteurs en direct s\'exécutent dans la page, dans votre caméra
+- **Liens MEDIA** (`mp4`, `m3u8`, `mpd`, `ts`…) — diffusés en direct par MediaPlayer comme avant, avec un chien de garde plus intelligent (les réseaux lents ne provoquent plus une boucle de reconnexion infinie)
+- **Images pour l\'autre correspondant en appel vidéo** — un nouveau pont d\'images alimente les chemins lecteur Camera2 et callback Camera1 avec de vraies images pour les pages ET le HLS : l\'autre côté de l\'appel voit aussi le lien (en v6.1 le HLS était en aperçu seul et les pages en noir)
+- **Jamais d\'écran noir** — rendu matériel → rendu logiciel → vidéo locale, dans cet ordre ; des toasts annoncent chaque étape, et un lien mort ne peut jamais figer l\'application hôte (attentes bornées au lieu de boucles infinies)
+- **http:// autorisé** — la politique cleartext est interceptée, les liens non-https fonctionnent sur Android 9+
 
 ### Utilisation de base
 
