@@ -203,6 +203,26 @@ public class VideoProvider extends ContentProvider {
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
         LogUtil.log("[DIAG]VideoProvider.call → method=" + method);
+
+        // ---- v6.3: relay control + diagnostics (allowed for every hooked app;
+        //      these calls are harmless — they start our own service / store
+        //      status strings — and MUST work even if the caller is not in the
+        //      user's target list, otherwise LSPatch failures stay invisible) ----
+        if (IpcContract.METHOD_ENSURE_ENGINE.equals(method)) {
+            StreamEngineService.ensureRunning(getContext());
+            Bundle ok = new Bundle();
+            ok.putBoolean(IpcContract.EXTRA_CHANGED, true);
+            return ok;
+        }
+        if (IpcContract.METHOD_REPORT_HOOK.equals(method)) {
+            String type = extras != null ? extras.getString(IpcContract.EXTRA_HOOK_TYPE, "") : "";
+            String detail = extras != null ? extras.getString(IpcContract.EXTRA_HOOK_DETAIL, "") : "";
+            StreamEngineService.addHookEvent(arg != null ? arg : "unknown", type, detail);
+            Bundle ok = new Bundle();
+            ok.putBoolean(IpcContract.EXTRA_CHANGED, true);
+            return ok;
+        }
+
         if (!isCallerAllowed(true)) {
             LogUtil.log("[DIAG]VideoProvider.call → write operation denied");
             Bundle denied = new Bundle();

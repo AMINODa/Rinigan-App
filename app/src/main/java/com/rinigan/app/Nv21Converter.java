@@ -91,6 +91,67 @@ public final class Nv21Converter {
         return argbToNv21(argb, w, h);
     }
 
+    // ======================== NV21 -> Bitmap (v6.3 relay) ========================
+
+    /** NV21 → ARGB_8888 Bitmap (canvas posting of relayed engine frames). */
+    public static Bitmap nv21ToBitmap(byte[] nv21, int w, int h) {
+        if (nv21 == null || w <= 0 || h <= 0 || nv21.length < w * h * 3 / 2) return null;
+        int frameSize = w * h;
+        int[] argb = new int[frameSize];
+        for (int j = 0; j < h; j++) {
+            int yRow = j * w;
+            int uvRow = frameSize + (j >> 1) * w;
+            for (int i = 0; i < w; i++) {
+                int y = nv21[yRow + i] & 0xFF;
+                int uvIndex = uvRow + (i & ~1);
+                int v = (nv21[uvIndex] & 0xFF) - 128;
+                int u = (nv21[uvIndex + 1] & 0xFF) - 128;
+                int r = y + ((91881 * v) >> 16);
+                int g = y - ((22554 * u + 46802 * v) >> 16);
+                int b = y + ((116130 * u) >> 16);
+                argb[yRow + i] = 0xFF000000
+                        | (clamp255(r) << 16) | (clamp255(g) << 8) | clamp255(b);
+            }
+        }
+        return Bitmap.createBitmap(argb, w, h, Bitmap.Config.ARGB_8888);
+    }
+
+    private static int clamp255(int v) {
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+    }
+
+    // ======================== RGBA byte buffer -> NV21 (v6.3 GL readback) ========================
+
+    /**
+     * Raw RGBA8888 byte buffer (glReadPixels order: R,G,B,A per pixel) → NV21.
+     * Used by the app-side LinkRenderer after reading the decoded video frame.
+     */
+    public static byte[] rgbaBufferToNv21(java.nio.ByteBuffer rgba, int w, int h) {
+        if (rgba == null || w <= 0 || h <= 0) return null;
+        int frameSize = w * h;
+        byte[] nv21 = new byte[frameSize + (frameSize >> 1)];
+        int yIndex = 0;
+        int uvIndex = frameSize;
+        rgba.position(0);
+        for (int j = 0; j < h; j++) {
+            for (int i = 0; i < w; i++) {
+                int p = (j * w + i) * 4;
+                int r = rgba.get(p) & 0xFF;
+                int g = rgba.get(p + 1) & 0xFF;
+                int b = rgba.get(p + 2) & 0xFF;
+                int y = ((66 * r + 129 * g + 25 * b + 128) >> 8) + 16;
+                nv21[yIndex++] = (byte) (y < 16 ? 16 : Math.min(y, 255));
+                if ((j & 1) == 0 && (i & 1) == 0) {
+                    int u = ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128;
+                    int v = ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128;
+                    nv21[uvIndex++] = (byte) (v < 0 ? 0 : Math.min(v, 255));
+                    nv21[uvIndex++] = (byte) (u < 0 ? 0 : Math.min(u, 255));
+                }
+            }
+        }
+        return nv21;
+    }
+
     // ======================== NV21 scaling (nearest neighbor) ========================
 
     /** Scales an NV21 frame to a new size (nearest neighbor — fast, good enough at 10-15 fps). */

@@ -30,5 +30,20 @@ public final class IpcContract {
     public static final String METHOD_PREV = "prev";
     public static final String METHOD_RANDOM = "random";
 
+    // ======================== v6.3 relay / diagnostics IPC ========================
+
+    /** Abstract-namespace unix socket carrying NV21 frames from the engine. */
+    public static final String RELAY_SOCKET_NAME = "rinigan.relay";
+    public static final int RELAY_MAGIC = 0x52474E33; // "RNG3"
+    public static final int RELAY_VERSION = 3;
+
+    /** Provider call(): hook side asks the app to start the engine service. */
+    public static final String METHOD_ENSURE_ENGINE = "ensure_engine";
+    /** Provider call(): hook side reports pipeline state for the Diagnostics card. */
+    public static final String METHOD_REPORT_HOOK = "report_hook";
+    /** Bundle keys for METHOD_REPORT_HOOK. */
+    public static final String EXTRA_HOOK_TYPE = "hook_type";
+    public static final String EXTRA_HOOK_DETAIL = "hook_detail";
+
     private IpcContract() {}
 }

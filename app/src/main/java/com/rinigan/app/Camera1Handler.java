@@ -107,6 +107,9 @@ public class Camera1Handler {
                 SharedState.is_someone_playing = false;
                 XposedBridge.log("[Rinigan]Starting preview (" + src.describe() + ")");
                 SharedState.start_preview_camera = (Camera) param.thisObject;
+                // v6.3: diagnostics — the target app actually opened its camera
+                HookDiag.report(SharedState.toast_content, "camera_opened",
+                        "Camera1 preview started (" + src.describe() + ")");
 
                 // record current source for notification controls / resume bookkeeping
                 SharedState.currentVideoPath = src.mediaRef();
@@ -337,8 +340,11 @@ public class Camera1Handler {
                     // v6.2: web-page/HLS links cannot be MediaExtractor-decoded — the
                     // tap bridge renders them (WebView / MediaPlayer) into NV21 frames
                     // delivered through SharedState.data_buffer instead.
-                    boolean needsTapBridge = src.isStream()
-                            && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+                    // v6.3: with relay mode ON every stream source goes through the
+                    // bridge → the engine renders it in the Rinigan app process
+                    // (works even when the target app has no INTERNET permission).
+                    boolean needsTapBridge = src.isStream() && (RelayClient.relayEnabled()
+                            || LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
                     if (needsTapBridge) {
                         if (SharedState.hw_decode_obj != null) {
                             SharedState.hw_decode_obj.stopDecode();
@@ -633,6 +639,10 @@ public class Camera1Handler {
         WebViewStreamer.stop("c1-tex");
         WebViewStreamer.stop("c1-holder");
         FrameTapBridge.stop("c1-cb");
+        // v6.3: stop relayed frame clients too
+        RelayClient.stop("c1-tex");
+        RelayClient.stop("c1-holder");
+        RelayClient.stop("c1-cb");
         try {
             if (SharedState.mMediaPlayer != null) {
                 SharedState.mMediaPlayer.stop();

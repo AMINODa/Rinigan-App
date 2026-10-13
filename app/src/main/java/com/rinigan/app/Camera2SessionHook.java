@@ -45,6 +45,9 @@ public class Camera2SessionHook {
                 WebViewStreamer.stop("c2-p2");
                 FrameTapBridge.stop("c2-r1");
                 FrameTapBridge.stop("c2-r2");
+                // v6.3: diagnostics — the target app actually opened its camera
+                HookDiag.report(SharedState.toast_content, "camera_opened",
+                        "Camera2 device opened");
                 if (SharedState.c2_hw_decode_obj_1 != null) {
                     SharedState.c2_hw_decode_obj_1.stopDecode();
                     SharedState.c2_hw_decode_obj_1 = null;
@@ -275,8 +278,9 @@ public class Camera2SessionHook {
         if (SharedState.c2_reader_Surfcae != null) {
             // v6.2: pages/HLS cannot be MediaExtractor-decoded — the tap bridge
             // produces the peer's frames (WebView rendering / MediaPlayer tap).
-            boolean needsTapBridge = src.isStream()
-                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            // v6.3: with relay mode ON every stream source goes through the bridge.
+            boolean needsTapBridge = src.isStream() && (RelayClient.relayEnabled()
+                    || LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
             if (needsTapBridge) {
                 if (SharedState.c2_hw_decode_obj != null) {
                     SharedState.c2_hw_decode_obj.stopDecode();
@@ -312,8 +316,8 @@ public class Camera2SessionHook {
 
         // Reader Surface 2
         if (SharedState.c2_reader_Surfcae_1 != null) {
-            boolean needsTapBridge2 = src.isStream()
-                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            boolean needsTapBridge2 = src.isStream() && (RelayClient.relayEnabled()
+                    || LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
             if (needsTapBridge2) {
                 if (SharedState.c2_hw_decode_obj_1 != null) {
                     SharedState.c2_hw_decode_obj_1.stopDecode();
@@ -443,8 +447,9 @@ public class Camera2SessionHook {
         // Reader Surface 1 — rebuilt if nulled by stopAllPlayers
         if (SharedState.c2_reader_Surfcae != null) {
             // v6.2: pages/HLS go through the tap bridge (peer frames for every link type)
-            boolean needsTapBridge = src.isStream()
-                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            // v6.3: with relay mode ON every stream source goes through the bridge.
+            boolean needsTapBridge = src.isStream() && (RelayClient.relayEnabled()
+                    || LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
             if (needsTapBridge) {
                 if (SharedState.c2_hw_decode_obj != null) {
                     SharedState.c2_hw_decode_obj.stopDecode();
@@ -480,8 +485,8 @@ public class Camera2SessionHook {
 
         // Reader Surface 2
         if (SharedState.c2_reader_Surfcae_1 != null) {
-            boolean needsTapBridge2 = src.isStream()
-                    && (LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
+            boolean needsTapBridge2 = src.isStream() && (RelayClient.relayEnabled()
+                    || LinkType.isPageUrl(src.url) || LinkType.isHlsUrl(src.url));
             if (needsTapBridge2) {
                 if (SharedState.c2_hw_decode_obj_1 != null) {
                     SharedState.c2_hw_decode_obj_1.stopDecode();
@@ -566,6 +571,11 @@ public class Camera2SessionHook {
         WebViewStreamer.stop("c2-p2");
         FrameTapBridge.stop("c2-r1");
         FrameTapBridge.stop("c2-r2");
+        // v6.3: stop relayed frame clients too
+        RelayClient.stop("c2-p1");
+        RelayClient.stop("c2-p2");
+        RelayClient.stop("c2-r1");
+        RelayClient.stop("c2-r2");
         try {
             if (SharedState.c2_player != null) {
                 SharedState.c2_player.stop();

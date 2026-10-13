@@ -153,4 +153,20 @@
     <string name="perapp_prefix_note">Le profil couvre aussi les sous-paquets (com.app inclut com.app.beta)</string>
     <string name="perapp_json_invalid">JSON invalide</string>
     <string name="perapp_builtin_hint">Ces applications sont reconnues automatiquement. Modifier l\u2019une d\u2019elles crée un remplacement personnalisé du même nom de paquet.</string>
+
+    <!-- v6.3 : carte environnement d\u2019affichage de lien -->
+    <string name="link_env_title">Environnement d\u2019affichage du lien</string>
+    <string name="link_env_desc">Affiche votre lien (site ou flux live) dans Rinigan lui-même puis l\u2019injecte dans la caméra de l\u2019application cible — fonctionne même sans permission INTERNET côté cible. Démarrez-la ici, ou elle démarre automatiquement quand la cible ouvre sa caméra.</string>
+    <string name="link_env_start">Démarrer</string>
+    <string name="link_env_stop">Arrêter</string>
+    <string name="link_env_state_running">ACTIVE</string>
+    <string name="link_env_state_stopped">ARRÊTÉE</string>
+    <string name="link_env_state">État</string>
+    <string name="link_env_url">Lien</string>
+    <string name="link_env_frames">Images envoyées</string>
+    <string name="link_env_clients">Applications connectées</string>
+    <string name="link_env_last_error">Dernière erreur</string>
+    <string name="link_env_preview">Aperçu en direct</string>
+    <string name="link_env_events">Événements de l\u2019application cible</string>
+    <string name="link_env_hint">Astuce : ajoutez d\u2019abord votre lien dans Gérer → Ajouter un lien. Si la caméra n\u2019affiche que l\u2019image d\u2019état, cette carte indique exactement quelle étape a échoué.</string>
 </resources>

@@ -87,6 +87,21 @@ public final class FrameTapBridge {
                 || !readerSurface.isValid()) {
             return false;
         }
+        // v6.3: relay first — frames come from the Stream Engine (LSPatch-safe)
+        if (RelayClient.relayEnabled()) {
+            boolean initiated = RelayClient.startWriter(tag, src.url, readerSurface,
+                    jpegFormat, () -> startWriterInProcess(tag, src, readerSurface, jpegFormat));
+            if (initiated) {
+                HookDiag.report(SharedState.toast_content, "relay",
+                        "reader pipeline relayed to engine (" + tag + ")");
+                return true;
+            }
+        }
+        return startWriterInProcess(tag, src, readerSurface, jpegFormat);
+    }
+
+    private static boolean startWriterInProcess(String tag, VideoSource src,
+                                                Surface readerSurface, boolean jpegFormat) {
         stop(tag);
         FrameTapBridge bridge = new FrameTapBridge(tag, src.url,
                 Mode.WRITER, jpegFormat);
@@ -102,6 +117,20 @@ public final class FrameTapBridge {
         if (tag == null || src == null || !src.isStream() || width <= 0 || height <= 0) {
             return false;
         }
+        // v6.3: relay first — frames come from the Stream Engine (LSPatch-safe)
+        if (RelayClient.relayEnabled()) {
+            boolean initiated = RelayClient.startBuffer(tag, src.url, width, height,
+                    () -> startBufferInProcess(tag, src, width, height));
+            if (initiated) {
+                HookDiag.report(SharedState.toast_content, "relay",
+                        "preview-callback pipeline relayed to engine (" + tag + ")");
+                return true;
+            }
+        }
+        return startBufferInProcess(tag, src, width, height);
+    }
+
+    private static boolean startBufferInProcess(String tag, VideoSource src, int width, int height) {
         stop(tag);
         FrameTapBridge bridge = new FrameTapBridge(tag, src.url, Mode.BUFFER, false);
         ACTIVE.put(tag, bridge);
@@ -360,6 +389,11 @@ public final class FrameTapBridge {
         }
         try {
             if (pumpThread != null) pumpThread.quitSafely();
+        } catch (Throwable ignored) {
+        }
+        // v6.3: stop any relay client bound to this tag too
+        try {
+            RelayClient.stop(tag);
         } catch (Throwable ignored) {
         }
         latestNv21 = null;

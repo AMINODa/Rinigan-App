@@ -97,7 +97,39 @@ public final class StreamPlayer {
      */
     public static void open(final MediaPlayer player, final VideoSource source,
                             final float volume, final String tag, final Surface surface) {
+        open(player, source, volume, tag, surface, true);
+    }
+
+    /**
+     * v6.3 core — with {@code allowRelay} the frame source is the Stream Engine
+     * running in the Rinigan APP process (LSPatch-safe: zero network/rendering
+     * inside the target). When the relay cannot be reached the classic
+     * in-process pipeline below takes over automatically.
+     */
+    private static void open(final MediaPlayer player, final VideoSource source,
+                             final float volume, final String tag, final Surface surface,
+                             final boolean allowRelay) {
         if (player == null || source == null || !source.isActive()) return;
+
+        // ---- v6.3: cross-process relay FIRST (LSPatch root-cause fix) ----
+        // The target app only needs a valid Surface; the engine (our app) does
+        // ALL networking + rendering. http links, HLS and web pages all work
+        // even when the target app has no INTERNET permission at all.
+        if (allowRelay && source.isStream() && RelayClient.relayEnabled()) {
+            StreamPlayer.cancel(player); // this player stays idle — engine owns rendering
+            WebViewStreamer.stop(tag);
+            XposedBridge.log(TAG + "[" + tag + "]RELAY path → Stream Engine: " + source.mediaRef());
+            boolean initiated = RelayClient.startSurface(tag, source.url, surface, () -> {
+                XposedBridge.log(TAG + "[" + tag + "]relay failed permanently → in-process pipeline");
+                open(player, source, volume, tag, surface, false);
+            });
+            if (initiated) {
+                HookDiag.report(SharedState.toast_content, "relay",
+                        "surface pipeline relayed to engine (" + tag + ")");
+                return;
+            }
+            XposedBridge.log(TAG + "[" + tag + "]relay refused → in-process pipeline");
+        }
 
         // ---- v6.2: PAGE links (websites, watch pages) — the EXACT root cause of the
         // black camera in v6.1. MediaPlayer cannot play a web page; the link must be

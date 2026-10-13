@@ -27,7 +27,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Rinigan"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name="com.rinigan.app.ui.MainActivity"
@@ -56,6 +57,13 @@
 
         <service
             android:name="com.rinigan.app.NotificationService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- v6.3: the Link Display Environment (renders links, serves NV21 frames
+             to hooked apps over an abstract unix socket). -->
+        <service
+            android:name="com.rinigan.app.StreamEngineService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 

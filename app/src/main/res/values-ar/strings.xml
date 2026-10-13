@@ -153,4 +153,20 @@
     <string name="perapp_prefix_note">ينطبق ملف التعريف أيضًا على الحزمات الفرعية (com.app يشمل com.app.beta)</string>
     <string name="perapp_json_invalid">JSON غير صالح</string>
     <string name="perapp_builtin_hint">يتم التعرف تلقائيًا على هذه التطبيقات. تعديل أي منها ينشئ تجاوزًا مخصصًا بنفس اسم الحزمة.</string>
+
+    <!-- v6.3: بطاقة بيئة عرض الرابط -->
+    <string name="link_env_title">بيئة عرض الرابط</string>
+    <string name="link_env_desc">تعرض الرابط (موقع أو بث مباشر) داخل تطبيق رينيغان نفسه ثم تُحقنه في كاميرا التطبيق الهدف — تعمل حتى لو لم يكن للهدف صلاحية إنترنت. شغّلها من هنا أو ستُشغّل تلقائيًا عند فتح الكاميرا في الهدف.</string>
+    <string name="link_env_start">تشغيل</string>
+    <string name="link_env_stop">إيقاف</string>
+    <string name="link_env_state_running">تعمل</string>
+    <string name="link_env_state_stopped">متوقفة</string>
+    <string name="link_env_state">الحالة</string>
+    <string name="link_env_url">الرابط</string>
+    <string name="link_env_frames">الإطارات المرسلة</string>
+    <string name="link_env_clients">التطبيقات المتصلة</string>
+    <string name="link_env_last_error">آخر خطأ</string>
+    <string name="link_env_preview">معاينة حية</string>
+    <string name="link_env_events">أحداث التطبيق الهدف</string>
+    <string name="link_env_hint">نصيحة: أضف رابطك أولًا من «الإدارة ← إضافة رابط». إن ظهرت صورة الحالة فقط في الكاميرا فهذه البطاقة تخبرك بالضبط أي مرحلة فشلت.</string>
 </resources>

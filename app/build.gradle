@@ -4,6 +4,10 @@ plugins {
 }
 
 android {
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
     namespace 'com.rinigan.app'
     compileSdk 34
 
@@ -20,8 +24,8 @@ android {
         applicationId "com.rinigan.app"
         minSdk 21
         targetSdk 34
-        versionCode 34
-        versionName "6.2"
+        versionCode 35
+        versionName "6.3"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -153,4 +153,20 @@
     <string name="perapp_prefix_note">The profile also matches sub-packages (com.app covers com.app.beta)</string>
     <string name="perapp_json_invalid">Invalid JSON</string>
     <string name="perapp_builtin_hint">Overrides for these apps are honored automatically. Editing one creates a custom override with the same package name.</string>
+
+    <!-- v6.3: Link Display Environment (diagnostics card on Home) -->
+    <string name="link_env_title">Link Display Environment</string>
+    <string name="link_env_desc">Renders your link inside Rinigan (website or live stream) and injects it into the target app\u2019s camera — works even when the target has no INTERNET permission. Start it here or it auto-starts when the target opens its camera.</string>
+    <string name="link_env_start">Start</string>
+    <string name="link_env_stop">Stop</string>
+    <string name="link_env_state_running">RUNNING</string>
+    <string name="link_env_state_stopped">STOPPED</string>
+    <string name="link_env_state">State</string>
+    <string name="link_env_url">Link</string>
+    <string name="link_env_frames">Frames sent</string>
+    <string name="link_env_clients">Connected apps</string>
+    <string name="link_env_last_error">Last error</string>
+    <string name="link_env_preview">Live preview</string>
+    <string name="link_env_events">Target app events</string>
+    <string name="link_env_hint">Tip: paste your link in Manage → Add Link first. If the camera still shows the placeholder frame, check this card — it tells you exactly which stage failed.</string>
 </resources>

@@ -66,6 +66,10 @@ public class ConfigManager {
     public static final String KEY_STREAM_LOCAL_FALLBACK = "stream_enable_local_fallback";
     public static final String KEY_STREAM_TRANSPORT_HINT = "stream_transport_hint";
     public static final String KEY_STREAM_TIMEOUT_MS = "stream_timeout_ms";
+    /** v6.3 — cross-process relay: render links in the Rinigan app, ship frames over a local socket (default ON). */
+    public static final String KEY_RELAY_MODE = "relay_mode";
+    /** v6.3 — engine display mode: "auto" (LinkType) | "media" | "page". */
+    public static final String KEY_STREAM_DISPLAY_MODE = "stream_display_mode";
     public static final String MEDIA_SOURCE_LOCAL = "local";
     public static final String MEDIA_SOURCE_STREAM = "stream";
 

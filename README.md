@@ -12,7 +12,7 @@
 ### Main features
 
 - Replace the camera feed with a local video
-- **Live Link Display Environment (v6.2)** — paste ANY link (website, live-stream page, or direct video) and it is rendered LIVE in place of the camera (nothing is downloaded)
+- **Cross-Process Link Environment (v6.3)** — your link (website OR live stream) is rendered inside the Rinigan app itself, then the frames are injected into the target app's camera. Works even when the target app has NO INTERNET permission (the classic LSPatch black-screen cause), and a built-in Diagnostics card shows the exact pipeline state at every stage
 - Supports Camera1 / Camera2
 - **Per-App Transformation Engine (v5.2)**: automatic per-app rotation, scaling and mirroring of the replacement stream
 - Supports image replacement of photo results
@@ -41,6 +41,8 @@ Configure per app in the new **Per-App** tab, via `app_profiles` in `cs_config.j
 ```
 
 ### Live Link Display Environment (new in v6.2)
+### Cross-Process Link Environment (new in v6.3)
+v6.3 moves the whole display environment into the Rinigan app process: the link is rendered there (MediaPlayer+EGL for streams, off-screen WebView for pages) and the NV21 frames travel to the target app over an abstract unix socket that needs **zero permissions**. The target app no longer needs INTERNET, a working WebView or overlay windows — the three LSPatch failure modes that produced a black camera in v6.2. A new Diagnostics card on the Home screen shows the engine state, a live preview of what cameras receive, frame counters and the target app's hook events, so a failure is always explained in plain language instead of silence.
 
 Rinigan v6.2 gives **every** link a real display environment — the exact fix for the v6.1 "link shows nothing when the camera opens" bug. The root cause: MediaPlayer can only stream direct media files, so websites and watch pages could never appear. Now there are two rendering paths and the link always shows:
 
@@ -81,7 +83,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### الميزات الرئيسية
 
 - استبدال صورة الكاميرا بفيديو محلي
-- **بيئة عرض الروابط المباشرة (v6.2)** — الصق أي رابط (موقع، صفحة بث مباشر، أو فيديو مباشر) وسيُعرض مباشرةً مكان الكاميرا (بدون أي تنزيل)
+- **بيئة عرض الروابط عبر العمليات (v6.3)** — رابطك (موقع أو بث مباشر) يُعرض داخل تطبيق رينيغان نفسه ثم تُنقل إطاراته إلى كاميرا التطبيق الهدف. يعمل حتى لو لم يكن للتطبيق الهدف صلاحية إنترنت (السبب الكلاسيكي للشاشة السوداء مع LSPatch)، مع بطاقة تشخيص مدمجة تعرض حالة الأنبوب في كل مرحلة
 - دعم Camera1 / Camera2
 - **محرّك التحويل لكل تطبيق (v5.2)**: تدوير وقياس وانعكاس تلقائي للبث البديل حسب كل تطبيق
 - دعم استبدال نتائج التصوير بالصور
@@ -101,6 +103,8 @@ This project is for learning, research and legal use only. Please comply with yo
 يُضبَط كل تطبيق من تبويب **لكل تطبيق** الجديد، أو عبر `app_profiles` في `cs_config.json`، أو بوضع ملف `app_profiles.json` في `DCIM/Camera1`.
 
 ### بيئة عرض الروابط المباشرة (جديد في v6.2)
+### بيئة عرض الروابط عبر العمليات (جديد في v6.3)
+نقلت v6.3 بيئة العرض بالكامل إلى عملية تطبيق رينيغان: الرابط يُعرض هناك (MediaPlayer+EGL للبث، WebView خارج الشاشة للمواقع) وتنتقل إطارات NV21 إلى التطبيق الهدف عبر سوكيت يونكس مجرد لا يحتاج **أي صلاحيات**. لم يعد التطبيق الهدف يحتاج إنترنت أو WebView عاملًا أو نوافذ تراكب — وهي أوضاع فشل LSPatch الثلاثة التي كانت تُنتج شاشة سوداء في v6.2. كما أضافت بطاقة تشخيص في الشاشة الرئيسية تعرض حالة المحرك ومعاينة حية لما تصلك عليه الكاميرات وعدّادات الإطارات وأحداث الهدف، فيُشرح أي فشل بلغة واضحة بدل الصمت.
 
 يوفر Rinigan v6.2 **بيئة عرض حقيقية لكل رابط** — وهذا هو الإصلاح الدقيق لمشكلة v6.1 "الرابط لا يظهر شيء عند فتح الكاميرا". السبب الجذري: MediaPlayer لا يستطيع تشغيل إلا ملفات الوسائط المباشرة، لذلك كانت المواقع وصفحات المشاهدة لا تظهر أبدًا. الآن هناك مسارا عرض ولن يبقى الرابط أبدًا بدون صورة:
 
@@ -141,7 +145,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### Fonctionnalités principales
 
 - Remplacer le flux de la caméra par une vidéo locale
-- **Environnement d\'affichage de liens en direct (v6.2)** — collez N\'IMPORTE QUEL lien (site web, page de direct, ou vidéo) et il est affiché EN DIRECT à la place de la caméra (aucun téléchargement)
+- **Environnement de lien inter-processus (v6.3)** — votre lien (site OU flux live) est rendu dans Rinigan lui-même, puis les images sont injectées dans la caméra de l\'application cible. Fonctionne même sans permission INTERNET côté cible (la cause classique de l\'écran noir avec LSPatch), avec une carte de diagnostic intégrée qui montre l\'état exact du pipeline à chaque étape
 - Prise en charge de Camera1 / Camera2
 - **Moteur de transformation par application (v5.2)** : rotation, mise à l'échelle et miroir automatiques du flux de remplacement pour chaque application
 - Remplacement des photos par des images
@@ -161,6 +165,8 @@ Le moteur universel normalise l'orientation et le ratio pour **toutes** les appl
 Configurez chaque application dans le nouvel onglet **Par app**, via `app_profiles` dans `cs_config.json`, ou en déposant un fichier `app_profiles.json` dans `DCIM/Camera1`.
 
 ### Environnement d\'affichage de liens en direct (nouveau en v6.2)
+### Environnement de lien inter-processus (nouveau en v6.3)
+v6.3 déplace tout l\'environnement d\'affichage dans le processus de l\'application Rinigan : le lien y est rendu (MediaPlayer+EGL pour les flux, WebView hors écran pour les pages) et les images NV21 voyagent vers l\'application cible via un socket unix abstrait qui n\'exige **aucune permission**. L\'application cible n\'a plus besoin d\'INTERNET, d\'un WebView fonctionnel ni de fenêtres overlay — les trois modes de défaillance LSPatch qui provoquaient un écran noir en v6.2. Une nouvelle carte de diagnostic sur l\'écran d\'accueil affiche l\'état du moteur, un aperçu en direct, les compteurs d\'images et les événements de l\'application cible.
 
 Rinigan v6.2 offre à **chaque** lien un véritable environnement d\'affichage — la correction exacte du bug v6.1 « le lien n\'affiche rien à l\'ouverture de la caméra ». La cause racine : MediaPlayer ne peut diffuser que des fichiers média directs, donc les sites web et les pages de visionnage n\'apparaissaient jamais. Il y a désormais deux chemins de rendu et le lien s\'affiche toujours :
 
