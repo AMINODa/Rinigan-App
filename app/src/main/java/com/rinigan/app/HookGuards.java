@@ -42,6 +42,9 @@ public class HookGuards {
     /** Marks config as stale; the next getConfig() forces a reload */
     public static void invalidateConfig() {
         configDirty = true;
+        // v6: forget the memoized video-link cache so a changed URL re-resolves
+        linkMemoUrl = null;
+        linkMemoFile = null;
     }
 
     /** Ensures the ConfigManager holds a valid Context (for cross-process config reads via Provider). */
@@ -96,8 +99,45 @@ public class HookGuards {
         }
     }
 
+    // ===== v6: memo for the resolved video-link cache (avoids marker I/O per frame) =====
+    private static volatile String linkMemoUrl = null;
+    private static volatile File linkMemoFile = null;
+
     public static File getVideoFile() {
         ConfigManager config = getConfig();
+
+        // ===== v6: video link (network stream) mode =====
+        try {
+            String sourceType = config.getString(ConfigManager.KEY_MEDIA_SOURCE_TYPE,
+                    ConfigManager.MEDIA_SOURCE_LOCAL);
+            if (ConfigManager.MEDIA_SOURCE_STREAM.equals(sourceType)) {
+                String url = config.getString(ConfigManager.KEY_STREAM_URL, "");
+                if (url != null && !url.trim().isEmpty()) {
+                    String trimmed = url.trim();
+                    File memo = linkMemoFile;
+                    if (memo != null && trimmed.equals(linkMemoUrl) && memo.exists()) {
+                        LogUtil.log("[DIAG]getVideoFile → link memo hit: " + memo.getName());
+                        return memo;
+                    }
+                    File linkFile = VideoLinkResolver.resolveStreamCache();
+                    if (linkFile != null && linkFile.exists()) {
+                        linkMemoUrl = trimmed;
+                        linkMemoFile = linkFile;
+                        LogUtil.log("[DIAG]getVideoFile → link cache resolved: " + linkFile.getName());
+                        return linkFile;
+                    }
+                    // download failed — respect the local-fallback switch
+                    if (!config.getBoolean(ConfigManager.KEY_STREAM_LOCAL_FALLBACK, true)) {
+                        LogUtil.log("[DIAG]getVideoFile → link unavailable and local fallback disabled");
+                        return new File(SharedState.video_path, "virtual.mp4");
+                    }
+                    LogUtil.log("[DIAG]getVideoFile → link unavailable, falling back to local video");
+                }
+            }
+        } catch (Throwable t) {
+            LogUtil.log("[DIAG]getVideoFile → link resolution error: " + t);
+        }
+
         String selectedName = config.getString(ConfigManager.KEY_SELECTED_VIDEO, null);
         File dir = new File(SharedState.video_path);
         LogUtil.log("[DIAG]getVideoFile → dir=" + dir.getAbsolutePath() + " selected=" + selectedName);

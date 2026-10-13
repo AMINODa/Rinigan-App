@@ -12,6 +12,7 @@
 ### Main features
 
 - Replace the camera feed with a local video
+- **Video Link (v6)** — paste a direct video URL and it is used in place of the video file
 - Supports Camera1 / Camera2
 - **Per-App Transformation Engine (v5.2)**: automatic per-app rotation, scaling and mirroring of the replacement stream
 - Supports image replacement of photo results
@@ -38,6 +39,15 @@ Configure per app in the new **Per-App** tab, via `app_profiles` in `cs_config.j
   }
 }
 ```
+
+### Video Link (new in v6)
+
+Rinigan v6 lets you feed the virtual camera straight from a **video link**:
+
+- **Manage → Add video link** — paste a direct `http(s)` link (e.g. `https://example.com/video.mp4`); the video downloads into the Camera1 folder with a live progress bar and then behaves exactly like any local video (selectable, switchable, random play)
+- **Link badge** — videos imported from a link display their source URL on the card
+- **Network stream mode (Settings → Network stream settings)** — now fully wired into the camera pipeline: with source type `Network stream` the module resolves the URL automatically inside the hooked app and caches it, falling back to the local video if the link is unreachable (`stream_enable_local_fallback`)
+- Cache is invalidated automatically whenever the URL changes
 
 ### Basic usage
 
@@ -70,6 +80,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### الميزات الرئيسية
 
 - استبدال صورة الكاميرا بفيديو محلي
+- **رابط فيديو (v6)** — الصق رابط فيديو مباشر وسيُستخدم مكان ملف الفيديو
 - دعم Camera1 / Camera2
 - **محرّك التحويل لكل تطبيق (v5.2)**: تدوير وقياس وانعكاس تلقائي للبث البديل حسب كل تطبيق
 - دعم استبدال نتائج التصوير بالصور
@@ -87,6 +98,15 @@ This project is for learning, research and legal use only. Please comply with yo
 - **مرحّل مصفوفة OpenGL** — تُحوَّل الإطارات قبل وصولها إلى Surface الخاص بالتطبيق؛ وتُحوَّل مخازن معاينة Camera1 على مستوى البايت (NV21)
 
 يُضبَط كل تطبيق من تبويب **لكل تطبيق** الجديد، أو عبر `app_profiles` في `cs_config.json`، أو بوضع ملف `app_profiles.json` في `DCIM/Camera1`.
+
+### رابط فيديو (جديد في v6)
+
+يتيح لك Rinigan v6 تغذية الكاميرا الافتراضية مباشرة من **رابط فيديو**:
+
+- **إدارة → إضافة رابط فيديو** — الصق رابطًا مباشرًا `http(s)` (مثل `https://example.com/video.mp4`)؛ يُنزَّل الفيديو إلى مجلد Camera1 مع شريط تقدم حي، ثم يعمل تمامًا كأي فيديو محلي (اختيار، تبديل، تشغيل عشوائي)
+- **شارة الرابط** — الفيديوهات المستوردة من رابط تعرض رابط مصدرها على البطاقة
+- **وضع البث الشبكي (الإعدادات → إعدادات البث الشبكي)** — أصبح مربوطًا فعليًا بمسار الكاميرا: عند اختيار نوع المصدر «بث شبكي» يقوم المحلل تلقائيًا بتنزيل الرابط داخل التطبيق المخترق وتخزينه مؤقتًا، مع العودة للفيديو المحلي إذا تعذّر الوصول للرابط (`stream_enable_local_fallback`)
+- يُبطل الكاش تلقائيًا عند تغيّر الرابط
 
 ### الاستخدام الأساسي
 
@@ -119,6 +139,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### Fonctionnalités principales
 
 - Remplacer le flux de la caméra par une vidéo locale
+- **Lien vidéo (v6)** — collez une URL vidéo directe et elle remplace le fichier vidéo
 - Prise en charge de Camera1 / Camera2
 - **Moteur de transformation par application (v5.2)** : rotation, mise à l'échelle et miroir automatiques du flux de remplacement pour chaque application
 - Remplacement des photos par des images
@@ -136,6 +157,15 @@ Le moteur universel normalise l'orientation et le ratio pour **toutes** les appl
 - **Relais matriciel OpenGL** — les images sont transformées avant d'atteindre la Surface de l'application ; les tampons d'aperçu Camera1 sont transformés au niveau octet (NV21)
 
 Configurez chaque application dans le nouvel onglet **Par app**, via `app_profiles` dans `cs_config.json`, ou en déposant un fichier `app_profiles.json` dans `DCIM/Camera1`.
+
+### Lien vidéo (nouveau en v6)
+
+Rinigan v6 permet d'alimenter la caméra virtuelle directement depuis un **lien vidéo** :
+
+- **Gérer → Ajouter un lien vidéo** — collez un lien `http(s)` direct (ex. `https://example.com/video.mp4`) ; la vidéo est téléchargée dans le dossier Camera1 avec une barre de progression, puis se comporte exactement comme une vidéo locale (sélection, changement, lecture aléatoire)
+- **Badge lien** — les vidéos importées d'un lien affichent leur URL source sur la carte
+- **Mode flux réseau (Paramètres → Paramètres de flux réseau)** — désormais entièrement branché sur le pipeline caméra : avec le type de source « Flux réseau », le module résout l'URL automatiquement dans l'application hookée et la met en cache, avec repli sur la vidéo locale si le lien est injoignable (`stream_enable_local_fallback`)
+- Le cache est invalidé automatiquement à chaque changement d'URL
 
 ### Utilisation de base
 

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
@@ -36,6 +37,7 @@ import java.util.Locale
 fun ManageScreen(viewModel: MediaViewModel) {
     var selectedTab by remember { mutableStateOf(0) }
     var showFabMenu by remember { mutableStateOf(false) }
+    var showAddLinkDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
 
     val videoImportLauncher = rememberLauncherForActivityResult(
@@ -58,6 +60,14 @@ fun ManageScreen(viewModel: MediaViewModel) {
                     onDismissRequest = { showFabMenu = false }
                 ) {
                     if (selectedTab == 0) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.manage_add_link)) },
+                            onClick = {
+                                showFabMenu = false
+                                showAddLinkDialog = true
+                            },
+                            leadingIcon = { Icon(Icons.Default.Link, null) }
+                        )
                         DropdownMenuItem(
                             text = { Text(text = stringResource(R.string.import_to_camera_dir)) },
                             onClick = {
@@ -147,6 +157,7 @@ fun ManageScreen(viewModel: MediaViewModel) {
                                 videoPath = video.file.absolutePath,
                                 isSelected = video.name == uiState.selectedVideoName,
                                 isAudio = false,
+                                sourceUrl = video.sourceUrl,
                                 onSelect = { viewModel.selectVideo(video.name) },
                                 onDelete = { viewModel.deleteFile(video.file) }
                             )
@@ -181,7 +192,110 @@ fun ManageScreen(viewModel: MediaViewModel) {
                 }
             }
         }
+
+        if (showAddLinkDialog) {
+            AddLinkDialog(
+                isDownloading = uiState.linkDownloading,
+                progress = uiState.linkDownloadProgress,
+                error = uiState.linkDownloadError,
+                onDownload = { url -> viewModel.addVideoFromUrl(url) },
+                onDismiss = {
+                    showAddLinkDialog = false
+                    viewModel.clearLinkError()
+                }
+            )
+        }
     }
+}
+
+/**
+ * v6 — dialog to add a remote video link. The video is downloaded into the
+ * Camera1 directory, then behaves exactly like any locally stored video.
+ */
+@Composable
+private fun AddLinkDialog(
+    isDownloading: Boolean,
+    progress: Int,
+    error: String?,
+    onDownload: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var url by remember { mutableStateOf("") }
+    val validUrl = remember(url) { MediaViewModel.isValidVideoUrl(url.trim()) }
+
+    // auto-close when the download finished successfully
+    LaunchedEffect(isDownloading, progress) {
+        if (!isDownloading && progress >= 100) {
+            kotlinx.coroutines.delay(600)
+            onDismiss()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!isDownloading) onDismiss() },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Link, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.link_dialog_title))
+            }
+        },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.link_dialog_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    enabled = !isDownloading,
+                    singleLine = true,
+                    isError = url.isNotBlank() && !validUrl,
+                    label = { Text(stringResource(R.string.link_dialog_hint)) },
+                    placeholder = { Text(stringResource(R.string.link_dialog_url_placeholder)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (isDownloading) {
+                    Spacer(Modifier.height(14.dp))
+                    LinearProgressIndicator(
+                        progress = { progress / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.link_download_progress) + " $progress%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else if (error != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = when (error) {
+                            "invalid_url" -> stringResource(R.string.link_invalid_url)
+                            else -> stringResource(R.string.link_download_failed) + " (" + error + ")"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = validUrl && !isDownloading,
+                onClick = { onDownload(url.trim()) }
+            ) { Text(stringResource(R.string.link_dialog_download)) }
+        },
+        dismissButton = {
+            TextButton(
+                enabled = !isDownloading,
+                onClick = onDismiss
+            ) { Text(stringResource(R.string.perapp_cancel)) }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,7 +308,8 @@ private fun MediaCard(
     isAudio: Boolean,
     onSelect: () -> Unit,
     onDelete: () -> Unit,
-    videoPath: String? = null
+    videoPath: String? = null,
+    sourceUrl: String? = null
 ) {
     val context = LocalContext.current
     Card(
@@ -256,6 +371,25 @@ private fun MediaCard(
             Column(Modifier.weight(1f)) {
                 Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                if (sourceUrl != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Link,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = sourceUrl,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
+                    }
+                }
                 Spacer(Modifier.height(4.dp))
                 Row {
                     Text(text = String.format(Locale.getDefault(), "%.1f MB", sizeMb),

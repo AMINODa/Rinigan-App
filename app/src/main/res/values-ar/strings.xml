@@ -90,6 +90,17 @@
     <string name="import_to_camera_dir">استيراد إلى مجلد Camera1 (نسخ)</string>
     <string name="select_from_storage">اختيار من التخزين (مرجع)</string>
 
+    <!-- Video Link (v6) -->
+    <string name="manage_add_link">إضافة رابط فيديو</string>
+    <string name="link_dialog_title">رابط فيديو</string>
+    <string name="link_dialog_desc">الصق رابط فيديو مباشر (mp4). سيُنزَّل الفيديو إلى مجلد Camera1 ويُستخدم مكان ملف الفيديو.</string>
+    <string name="link_dialog_hint">رابط الفيديو</string>
+    <string name="link_dialog_url_placeholder">https://example.com/video.mp4</string>
+    <string name="link_dialog_download">تنزيل</string>
+    <string name="link_download_progress">جارٍ التنزيل…</string>
+    <string name="link_download_failed">فشل التنزيل</string>
+    <string name="link_invalid_url">رابط فيديو غير صالح</string>
+
     <!-- About -->
     <string name="about_title">حول</string>
     <string name="about_app_name">Rinigan</string>
