@@ -5,12 +5,10 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CameraCaptureSession;
 import android.os.Build;
-import android.os.Environment;
 import android.os.Handler;
 import android.view.Surface;
 import android.widget.Toast;
 
-import java.io.File;
 import java.util.concurrent.Executor;
 
 import de.robv.android.xposed.XC_MethodHook;
@@ -44,9 +42,9 @@ public class Camera2Handler {
                 SharedState.c2_state_callback = param.args[1].getClass();
 
                 if (HookGuards.isDisabled()) return;
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists()) {
+                if (!src.isActive()) {
                     if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                         try {
                             Toast.makeText(SharedState.toast_content,
@@ -76,9 +74,9 @@ public class Camera2Handler {
                 SharedState.c2_state_cb = (CameraDevice.StateCallback) param.args[2];
 
                 if (HookGuards.isDisabled()) return;
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists()) {
+                if (!src.isActive()) {
                     if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                         try {
                             Toast.makeText(SharedState.toast_content,
@@ -107,9 +105,9 @@ public class Camera2Handler {
                 if (param.args[0] == null) return;
                 if (param.thisObject == null) return;
 
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists()) {
+                if (!src.isActive()) {
                     if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                         try {
                             Toast.makeText(SharedState.toast_content,
@@ -159,9 +157,9 @@ public class Camera2Handler {
                 if (param.args[0] == null) return;
                 if (param.thisObject == null) return;
 
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists()) {
+                if (!src.isActive()) {
                     if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                         try {
                             Toast.makeText(SharedState.toast_content,
@@ -196,9 +194,9 @@ public class Camera2Handler {
                 if (param.thisObject.equals(SharedState.c2_builder)) return;
                 SharedState.c2_builder = (CaptureRequest.Builder) param.thisObject;
 
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists() && SharedState.need_to_show_toast) {
+                if (!src.isActive() && SharedState.need_to_show_toast) {
                     if (SharedState.toast_content != null) {
                         try {
                             Toast.makeText(SharedState.toast_content,

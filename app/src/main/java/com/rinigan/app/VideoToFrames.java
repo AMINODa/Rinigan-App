@@ -11,7 +11,6 @@ import android.media.MediaFormat;
 import android.util.Log;
 import android.view.Surface;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -110,12 +109,32 @@ public class VideoToFrames implements Runnable {
         MediaExtractor extractor = null;
         MediaCodec decoder = null;
         try {
-            File videoFile = new File(videoFilePath);
+            // v6.1: videoFilePath may be a local path OR a live http(s) link.
+            // MediaExtractor natively streams progressive http(s) sources — the frames
+            // are decoded in real time from the network (nothing is downloaded).
+            boolean isUrl = videoFilePath != null
+                    && (videoFilePath.startsWith("http://") || videoFilePath.startsWith("https://"));
+            if (isUrl) {
+                XposedBridge.log("[Rinigan][decoder]LIVE source: " + videoFilePath);
+            }
             extractor = new MediaExtractor();
-            extractor.setDataSource(videoFilePath);
+            if (isUrl) {
+                try {
+                    java.util.Map<String, String> headers = new java.util.HashMap<>();
+                    headers.put("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Rinigan/6.1");
+                    extractor.setDataSource(videoFilePath, headers);
+                } catch (Exception uaFail) {
+                    XposedBridge.log("[Rinigan][decoder]setDataSource(url, headers) failed, retrying plain: " + uaFail);
+                    extractor.setDataSource(videoFilePath);
+                }
+            } else {
+                extractor.setDataSource(videoFilePath);
+            }
             int trackIndex = selectTrack(extractor);
             if (trackIndex < 0) {
-                XposedBridge.log("[Rinigan][decoder]No video track found in " + videoFilePath);
+                XposedBridge.log("[Rinigan][decoder]No video track found in " + videoFilePath
+                        + " (HLS/m3u8 links are preview-only — they cannot be decoded frame-by-frame)");
+                return; // v6.1: stop cleanly instead of crashing on selectTrack(-1)
             }
             extractor.selectTrack(trackIndex);
             MediaFormat mediaFormat = extractor.getTrackFormat(trackIndex);
@@ -144,15 +163,15 @@ public class VideoToFrames implements Runnable {
                 decoder.stop();
             }
         } catch (Exception e) {
-            XposedBridge.log("[Rinigan][videofile]" + e.toString());
+            XposedBridge.log("[Rinigan][videofile]decode ended: " + e.toString());
         } finally {
             if (decoder != null) {
-                decoder.stop();
-                decoder.release();
+                try { decoder.stop(); } catch (Throwable ignored) {}
+                try { decoder.release(); } catch (Throwable ignored) {}
                 decoder = null;
             }
             if (extractor != null) {
-                extractor.release();
+                try { extractor.release(); } catch (Throwable ignored) {}
                 extractor = null;
             }
         }

@@ -12,7 +12,7 @@
 ### Main features
 
 - Replace the camera feed with a local video
-- **Video Link (v6)** — paste a direct video URL and it is used in place of the video file
+- **Live Video Link (v6.1)** — paste a video URL and it plays LIVE over the internet in place of the camera (nothing is downloaded)
 - Supports Camera1 / Camera2
 - **Per-App Transformation Engine (v5.2)**: automatic per-app rotation, scaling and mirroring of the replacement stream
 - Supports image replacement of photo results
@@ -40,14 +40,15 @@ Configure per app in the new **Per-App** tab, via `app_profiles` in `cs_config.j
 }
 ```
 
-### Video Link (new in v6)
+### Live Video Link (new in v6.1)
 
-Rinigan v6 lets you feed the virtual camera straight from a **video link**:
+Rinigan v6.1 turns any video link into a **live camera source** — the video plays online, in real time, in place of the camera feed. **Nothing is ever downloaded.**
 
-- **Manage → Add video link** — paste a direct `http(s)` link (e.g. `https://example.com/video.mp4`); the video downloads into the Camera1 folder with a live progress bar and then behaves exactly like any local video (selectable, switchable, random play)
-- **Link badge** — videos imported from a link display their source URL on the card
-- **Network stream mode (Settings → Network stream settings)** — now fully wired into the camera pipeline: with source type `Network stream` the module resolves the URL automatically inside the hooked app and caches it, falling back to the local video if the link is unreachable (`stream_enable_local_fallback`)
-- Cache is invalidated automatically whenever the URL changes
+- **Manage → Add live video link** — paste a direct `http(s)` link (e.g. `https://example.com/video.mp4` or an `.m3u8` stream). It becomes active immediately; when the target app opens its camera, the link is playing there
+- **True streaming** — `MediaPlayer` streams the URL with `prepareAsync` (never blocks the target app) and `MediaExtractor` decodes frames straight from the network for apps that read raw camera buffers
+- **No black screen** — auto-reconnect with exponential backoff (5 attempts), playback watchdog, `http://` cleartext unblocked inside hooked apps, and optional local-video fallback if a link is completely dead
+- **Live resolution** — the real video size is detected as soon as the stream starts, so frames are never stretched
+- The link appears in the video list with a **LIVE** badge and can be switched/removed like any video
 
 ### Basic usage
 
@@ -80,7 +81,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### الميزات الرئيسية
 
 - استبدال صورة الكاميرا بفيديو محلي
-- **رابط فيديو (v6)** — الصق رابط فيديو مباشر وسيُستخدم مكان ملف الفيديو
+- **رابط فيديو مباشر (v6.1)** — الصق رابط فيديو وسيُعرض مباشرةً عبر الإنترنت مكان الكاميرا (بدون أي تنزيل)
 - دعم Camera1 / Camera2
 - **محرّك التحويل لكل تطبيق (v5.2)**: تدوير وقياس وانعكاس تلقائي للبث البديل حسب كل تطبيق
 - دعم استبدال نتائج التصوير بالصور
@@ -99,14 +100,15 @@ This project is for learning, research and legal use only. Please comply with yo
 
 يُضبَط كل تطبيق من تبويب **لكل تطبيق** الجديد، أو عبر `app_profiles` في `cs_config.json`، أو بوضع ملف `app_profiles.json` في `DCIM/Camera1`.
 
-### رابط فيديو (جديد في v6)
+### رابط فيديو مباشر (جديد في v6.1)
 
-يتيح لك Rinigan v6 تغذية الكاميرا الافتراضية مباشرة من **رابط فيديو**:
+يحوّل Rinigan v6.1 أي رابط فيديو إلى **مصدر كاميرا مباشر** — يُعرض الفيديو أونلاين وفي الوقت الحقيقي مكان صورة الكاميرا. **لا يتم تنزيل أي شيء إطلاقًا.**
 
-- **إدارة → إضافة رابط فيديو** — الصق رابطًا مباشرًا `http(s)` (مثل `https://example.com/video.mp4`)؛ يُنزَّل الفيديو إلى مجلد Camera1 مع شريط تقدم حي، ثم يعمل تمامًا كأي فيديو محلي (اختيار، تبديل، تشغيل عشوائي)
-- **شارة الرابط** — الفيديوهات المستوردة من رابط تعرض رابط مصدرها على البطاقة
-- **وضع البث الشبكي (الإعدادات → إعدادات البث الشبكي)** — أصبح مربوطًا فعليًا بمسار الكاميرا: عند اختيار نوع المصدر «بث شبكي» يقوم المحلل تلقائيًا بتنزيل الرابط داخل التطبيق المخترق وتخزينه مؤقتًا، مع العودة للفيديو المحلي إذا تعذّر الوصول للرابط (`stream_enable_local_fallback`)
-- يُبطل الكاش تلقائيًا عند تغيّر الرابط
+- **إدارة → إضافة رابط فيديو مباشر** — الصق رابط `http(s)` مباشرًا (مثل `https://example.com/video.mp4` أو بث `.m3u8`). يصبح نشطًا فورًا؛ عند فتح التطبيق الهدف للكاميرا ستجد الرابط يُعرض هناك
+- **بث حقيقي** — يبثّ `MediaPlayer` الرابط عبر `prepareAsync` (لا يجمّد التطبيق الهدف أبدًا) بينما يفكّ `MediaExtractor` الإطارات مباشرةً من الشبكة للتطبيقات التي تقرأ مخازن الكاميرا الخام
+- **بدون شاشة سوداء** — إعادة اتصال تلقائية بتراجع تصاعدي (5 محاولات)، ومراقب تشغيل، وإلغاء حجب `http://` داخل التطبيقات المخترقة، مع إمكانية العودة للفيديو المحلي إذا مات الرابط تمامًا
+- **دقة حية** — يُكتشف حجم الفيديو الحقيقي بمجرد بدء البث، فلا تتمدد الإطارات أبدًا
+- يظهر الرابط في قائمة الفيديوهات بشارة **LIVE** ويمكن تبديله أو حذفه كأي فيديو
 
 ### الاستخدام الأساسي
 
@@ -139,7 +141,7 @@ This project is for learning, research and legal use only. Please comply with yo
 ### Fonctionnalités principales
 
 - Remplacer le flux de la caméra par une vidéo locale
-- **Lien vidéo (v6)** — collez une URL vidéo directe et elle remplace le fichier vidéo
+- **Lien vidéo en direct (v6.1)** — collez une URL vidéo et elle est lue EN DIRECT via Internet à la place de la caméra (aucun téléchargement)
 - Prise en charge de Camera1 / Camera2
 - **Moteur de transformation par application (v5.2)** : rotation, mise à l'échelle et miroir automatiques du flux de remplacement pour chaque application
 - Remplacement des photos par des images
@@ -158,14 +160,15 @@ Le moteur universel normalise l'orientation et le ratio pour **toutes** les appl
 
 Configurez chaque application dans le nouvel onglet **Par app**, via `app_profiles` dans `cs_config.json`, ou en déposant un fichier `app_profiles.json` dans `DCIM/Camera1`.
 
-### Lien vidéo (nouveau en v6)
+### Lien vidéo en direct (nouveau en v6.1)
 
-Rinigan v6 permet d'alimenter la caméra virtuelle directement depuis un **lien vidéo** :
+Rinigan v6.1 transforme n'importe quel lien vidéo en **source de caméra en direct** — la vidéo est lue en ligne, en temps réel, à la place du flux caméra. **Rien n'est jamais téléchargé.**
 
-- **Gérer → Ajouter un lien vidéo** — collez un lien `http(s)` direct (ex. `https://example.com/video.mp4`) ; la vidéo est téléchargée dans le dossier Camera1 avec une barre de progression, puis se comporte exactement comme une vidéo locale (sélection, changement, lecture aléatoire)
-- **Badge lien** — les vidéos importées d'un lien affichent leur URL source sur la carte
-- **Mode flux réseau (Paramètres → Paramètres de flux réseau)** — désormais entièrement branché sur le pipeline caméra : avec le type de source « Flux réseau », le module résout l'URL automatiquement dans l'application hookée et la met en cache, avec repli sur la vidéo locale si le lien est injoignable (`stream_enable_local_fallback`)
-- Le cache est invalidé automatiquement à chaque changement d'URL
+- **Gérer → Ajouter un lien vidéo en direct** — collez un lien `http(s)` direct (ex. `https://example.com/video.mp4` ou un flux `.m3u8`). Il devient actif immédiatement ; quand l'application cible ouvre sa caméra, le lien y est déjà en lecture
+- **Vrai streaming** — `MediaPlayer` diffuse l'URL via `prepareAsync` (ne bloque jamais l'application cible) et `MediaExtractor` décode les images directement depuis le réseau pour les applications qui lisent les tampons bruts
+- **Aucun écran noir** — reconnexion automatique avec backoff exponentiel (5 tentatives), chien de garde de lecture, `http://` débloqué dans les applications hookées, et repli vidéo locale optionnel si le lien est totalement mort
+- **Résolution en direct** — la vraie taille de la vidéo est détectée dès le démarrage du flux, donc aucune image étirée
+- Le lien apparaît dans la liste des vidéos avec un badge **LIVE** et peut être changé/supprimé comme n'importe quelle vidéo
 
 ### Utilisation de base
 

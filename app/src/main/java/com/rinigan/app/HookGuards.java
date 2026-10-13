@@ -42,7 +42,7 @@ public class HookGuards {
     /** Marks config as stale; the next getConfig() forces a reload */
     public static void invalidateConfig() {
         configDirty = true;
-        // v6: forget the memoized video-link cache so a changed URL re-resolves
+        // v6.1: the stream source is re-read on next resolution
         linkMemoUrl = null;
         linkMemoFile = null;
     }
@@ -99,65 +99,68 @@ public class HookGuards {
         }
     }
 
-    // ===== v6: memo for the resolved video-link cache (avoids marker I/O per frame) =====
+    // ===== v6.1: memo for the resolved local fallback file (avoids per-frame I/O) =====
     private static volatile String linkMemoUrl = null;
     private static volatile File linkMemoFile = null;
 
-    public static File getVideoFile() {
+    /**
+     * v6.1 — Resolves the ACTIVE media source.
+     *
+     * Stream mode (media_source_type == "stream" + non-empty URL) returns a LIVE
+     * network source: the URL is played online in real time, nothing is downloaded.
+     * The attached local file is only used as a last-resort fallback when the link
+     * cannot play at all (KEY_STREAM_LOCAL_FALLBACK).
+     *
+     * Any other case returns the classic local video file.
+     */
+    public static VideoSource getVideoSource() {
         ConfigManager config = getConfig();
-
-        // ===== v6: video link (network stream) mode =====
         try {
             String sourceType = config.getString(ConfigManager.KEY_MEDIA_SOURCE_TYPE,
                     ConfigManager.MEDIA_SOURCE_LOCAL);
             if (ConfigManager.MEDIA_SOURCE_STREAM.equals(sourceType)) {
                 String url = config.getString(ConfigManager.KEY_STREAM_URL, "");
                 if (url != null && !url.trim().isEmpty()) {
-                    String trimmed = url.trim();
-                    File memo = linkMemoFile;
-                    if (memo != null && trimmed.equals(linkMemoUrl) && memo.exists()) {
-                        LogUtil.log("[DIAG]getVideoFile → link memo hit: " + memo.getName());
-                        return memo;
-                    }
-                    File linkFile = VideoLinkResolver.resolveStreamCache();
-                    if (linkFile != null && linkFile.exists()) {
-                        linkMemoUrl = trimmed;
-                        linkMemoFile = linkFile;
-                        LogUtil.log("[DIAG]getVideoFile → link cache resolved: " + linkFile.getName());
-                        return linkFile;
-                    }
-                    // download failed — respect the local-fallback switch
-                    if (!config.getBoolean(ConfigManager.KEY_STREAM_LOCAL_FALLBACK, true)) {
-                        LogUtil.log("[DIAG]getVideoFile → link unavailable and local fallback disabled");
-                        return new File(SharedState.video_path, "virtual.mp4");
-                    }
-                    LogUtil.log("[DIAG]getVideoFile → link unavailable, falling back to local video");
+                    File fallback = resolveLocalFile();
+                    LogUtil.log("[DIAG]getVideoSource → LIVE stream: " + url.trim());
+                    return VideoSource.stream(url.trim(), fallback);
                 }
+                LogUtil.log("[DIAG]getVideoSource → stream mode but URL empty");
             }
         } catch (Throwable t) {
-            LogUtil.log("[DIAG]getVideoFile → link resolution error: " + t);
+            LogUtil.log("[DIAG]getVideoSource → stream resolution error: " + t);
         }
+        return VideoSource.local(resolveLocalFile());
+    }
 
+    /** Classic local video resolution (existing v5.x logic, unchanged). */
+    private static File resolveLocalFile() {
+        ConfigManager config = getConfig();
         String selectedName = config.getString(ConfigManager.KEY_SELECTED_VIDEO, null);
         File dir = new File(SharedState.video_path);
-        LogUtil.log("[DIAG]getVideoFile → dir=" + dir.getAbsolutePath() + " selected=" + selectedName);
         if (selectedName != null && !selectedName.isEmpty()) {
             // uniformly use the Camera1 directory + file name
             String name = selectedName.contains("/") ? new File(selectedName).getName() : selectedName;
-            File selected = new File(dir, name);
-            LogUtil.log("[DIAG]getVideoFile → trying: " + selected.getAbsolutePath());
+            // v6.1: .url link descriptors are NOT playable videos — skip them so the
+            // local fallback never resolves to a link file
+            if (name.toLowerCase().endsWith(".url")) {
+                LogUtil.log("[DIAG]resolveLocalFile → selected is a link descriptor, skipping");
+                selectedName = null;
+                name = null;
+            }
+            File selected = (name != null) ? new File(dir, name) : null;
             try {
-                if (selected.exists() && !selected.isDirectory()) {
-                    LogUtil.log("[DIAG]getVideoFile → hit: " + selected.getName());
+                if (selected != null && selected.exists() && !selected.isDirectory()) {
+                    LogUtil.log("[DIAG]resolveLocalFile → hit: " + selected.getName());
                     return selected;
                 }
-                LogUtil.log("[DIAG]getVideoFile → not found: " + selected.getAbsolutePath());
+                if (selected != null) {
+                    LogUtil.log("[DIAG]resolveLocalFile → not found: " + selected.getAbsolutePath());
+                }
             } catch (SecurityException e) {
-                LogUtil.log("[DIAG]getVideoFile → SecurityException, trusting path: " + e);
-                return selected;
+                LogUtil.log("[DIAG]resolveLocalFile → SecurityException, trusting path: " + e);
+                if (selected != null) return selected;
             }
-        } else {
-            LogUtil.log("[DIAG]getVideoFile → selectedName empty, using fallback");
         }
         // fallback: any video in the directory (four formats supported)
         try {
@@ -169,15 +172,19 @@ public class HookGuards {
                 return false;
             });
             if (files != null && files.length > 0) {
-                LogUtil.log("[DIAG]getVideoFile → fallback found " + files.length + " videos, taking the first: " + files[0].getName());
+                LogUtil.log("[DIAG]resolveLocalFile → fallback found " + files.length + " videos, taking the first: " + files[0].getName());
                 return files[0];
             }
-            LogUtil.log("[DIAG]getVideoFile → fallback listFiles returned empty");
         } catch (SecurityException e) {
-            LogUtil.log("[DIAG]getVideoFile → fallback listFiles threw: " + e);
+            LogUtil.log("[DIAG]resolveLocalFile → fallback listFiles threw: " + e);
         }
-        LogUtil.log("[DIAG]getVideoFile → finally falling back to virtual.mp4");
+        LogUtil.log("[DIAG]resolveLocalFile → finally falling back to virtual.mp4");
         return new File(dir, "virtual.mp4");
+    }
+
+    /** Legacy helper — the local fallback file of the active source. */
+    public static File getVideoFile() {
+        return getVideoSource().file;
     }
 
     /** JSON config takes priority; falls back to file markers when no JSON exists. */

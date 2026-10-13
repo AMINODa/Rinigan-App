@@ -12,9 +12,7 @@ import android.view.SurfaceHolder;
 import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -40,8 +38,8 @@ public class Camera1Handler {
                 SurfaceTexture.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
-                File file = HookGuards.getVideoFile();
-                if (file.exists()) {
+                VideoSource src = HookGuards.getVideoSource();
+                if (src.isActive()) {
                     if (HookGuards.isDisabled()) return;
                     if (SharedState.is_hooked) {
                         SharedState.is_hooked = false;
@@ -90,9 +88,9 @@ public class Camera1Handler {
                 new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists()) {
+                if (!src.isActive()) {
                     if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                         try {
                             Toast.makeText(SharedState.toast_content,
@@ -107,18 +105,20 @@ public class Camera1Handler {
                 if (HookGuards.isDisabled()) return;
 
                 SharedState.is_someone_playing = false;
-                XposedBridge.log("[Rinigan]Starting preview");
+                XposedBridge.log("[Rinigan]Starting preview (" + src.describe() + ")");
                 SharedState.start_preview_camera = (Camera) param.thisObject;
 
-                // record current video path for notification controls
-                File videoFile = HookGuards.getVideoFile();
-                SharedState.currentVideoPath = videoFile.getAbsolutePath();
+                // record current source for notification controls / resume bookkeeping
+                SharedState.currentVideoPath = src.mediaRef();
+
+                boolean playSound = HookGuards.shouldPlaySound();
 
                 // SurfaceHolder player
                 if (SharedState.ori_holder != null) {
                     if (SharedState.mplayer1 == null) {
                         SharedState.mplayer1 = new MediaPlayer();
                     } else {
+                        StreamPlayer.cancel(SharedState.mplayer1);
                         SharedState.mplayer1.release();
                         SharedState.mplayer1 = null;
                         SharedState.mplayer1 = new MediaPlayer();
@@ -126,28 +126,13 @@ public class Camera1Handler {
                     if (!SharedState.ori_holder.getSurface().isValid() || SharedState.ori_holder == null) {
                         return;
                     }
-                    SharedState.mplayer1.setSurface(TransformApplicator.wrapSurface(
+                    Surface target = TransformApplicator.wrapSurface(
                             SharedState.ori_holder.getSurface(), "c1-holder",
-                            file.getAbsolutePath(), SharedState.toast_content, null));
-                    if (!(HookGuards.shouldPlaySound() && (!SharedState.is_someone_playing))) {
-                        SharedState.mplayer1.setVolume(0, 0);
-                        SharedState.is_someone_playing = false;
-                    } else {
-                        SharedState.is_someone_playing = true;
-                    }
-                    SharedState.mplayer1.setLooping(true);
-                    SharedState.mplayer1.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                        @Override
-                        public void onPrepared(MediaPlayer mp) {
-                            SharedState.mplayer1.start();
-                        }
-                    });
-                    try {
-                        SharedState.mplayer1.setDataSource(HookGuards.getVideoFile().getAbsolutePath());
-                        SharedState.mplayer1.prepare();
-                    } catch (IOException e) {
-                        XposedBridge.log("[Rinigan]" + e.toString());
-                    }
+                            src.mediaRef(), SharedState.toast_content, null);
+                    boolean effectiveSound = playSound && !SharedState.is_someone_playing;
+                    SharedState.is_someone_playing = effectiveSound;
+                    // v6.1: local file OR live network link — StreamPlayer owns reset+surface+volume
+                    StreamPlayer.open(SharedState.mplayer1, src, effectiveSound ? 1f : 0f, "c1-holder", target);
                 }
 
                 // SurfaceTexture player
@@ -164,28 +149,12 @@ public class Camera1Handler {
                         SharedState.mMediaPlayer.release();
                         SharedState.mMediaPlayer = new MediaPlayer();
                     }
-                    SharedState.mMediaPlayer.setSurface(TransformApplicator.wrapSurface(
+                    Surface target = TransformApplicator.wrapSurface(
                             SharedState.mSurface, "c1-tex",
-                            file.getAbsolutePath(), SharedState.toast_content, null));
-                    if (!(HookGuards.shouldPlaySound() && (!SharedState.is_someone_playing))) {
-                        SharedState.mMediaPlayer.setVolume(0, 0);
-                        SharedState.is_someone_playing = false;
-                    } else {
-                        SharedState.is_someone_playing = true;
-                    }
-                    SharedState.mMediaPlayer.setLooping(true);
-                    SharedState.mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                        @Override
-                        public void onPrepared(MediaPlayer mp) {
-                            SharedState.mMediaPlayer.start();
-                        }
-                    });
-                    try {
-                        SharedState.mMediaPlayer.setDataSource(HookGuards.getVideoFile().getAbsolutePath());
-                        SharedState.mMediaPlayer.prepare();
-                    } catch (IOException e) {
-                        XposedBridge.log("[Rinigan]" + e.toString());
-                    }
+                            src.mediaRef(), SharedState.toast_content, null);
+                    boolean effectiveSound = playSound && !SharedState.is_someone_playing;
+                    SharedState.is_someone_playing = effectiveSound;
+                    StreamPlayer.open(SharedState.mMediaPlayer, src, effectiveSound ? 1f : 0f, "c1-tex", target);
                 }
             }
         });
@@ -198,9 +167,9 @@ public class Camera1Handler {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 XposedBridge.log("[Rinigan]Adding SurfaceView preview");
-                File file = HookGuards.getVideoFile();
+                VideoSource src = HookGuards.getVideoSource();
                 SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-                if (!file.exists()) {
+                if (!src.isActive()) {
                     if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                         try {
                             Toast.makeText(SharedState.toast_content,
@@ -315,9 +284,9 @@ public class Camera1Handler {
         if (HookGuards.isDisabled()) {
             need_stop = 1;
         }
-        File file = HookGuards.getVideoFile();
+        VideoSource src = HookGuards.getVideoSource();
         SharedState.need_to_show_toast = HookGuards.shouldShowToast();
-        if (!file.exists()) {
+        if (!src.isActive()) {
             if (SharedState.toast_content != null && SharedState.need_to_show_toast) {
                 try {
                     Toast.makeText(SharedState.toast_content,
@@ -367,8 +336,9 @@ public class Camera1Handler {
                     }
                     SharedState.hw_decode_obj = new VideoToFrames();
                     SharedState.hw_decode_obj.setSaveFrames("", OutputImageFormat.NV21);
-                    SharedState.currentVideoPath = HookGuards.getVideoFile().getAbsolutePath();
-                    SharedState.hw_decode_obj.decode(HookGuards.getVideoFile().getAbsolutePath());
+                    SharedState.currentVideoPath = src.mediaRef();
+                    // v6.1: decode() accepts a live http(s) URL as well as a local path
+                    SharedState.hw_decode_obj.decode(src.mediaRef());
                     while (SharedState.data_buffer == null) {
                         // wait
                     }
@@ -497,77 +467,72 @@ public class Camera1Handler {
         return rgb2YCbCr420(pixels, width, height);
     }
 
-    // ======================== Hot-swap: reload players when video changes ========================
+    // ======================== Hot-swap: reload players when source changes ========================
     public static void reloadVideo() {
         HookGuards.getConfig().forceReload();
         if (HookGuards.isDisabled()) {
             stopAllPlayers();
             return;
         }
-        File newFile = HookGuards.getVideoFile();
-        String newPath = newFile.getAbsolutePath();
-        boolean playSound = HookGuards.shouldPlaySound();
-        XposedBridge.log("[Rinigan]Camera1 hot-swap video → " + newPath);
+        reloadWithSource(HookGuards.getVideoSource(), HookGuards.shouldPlaySound());
+    }
 
-        // === Resume playback logic ===
-        String oldPath = SharedState.currentVideoPath;
-        SharedState.currentVideoPath = newPath;
-        long resumePos = 0;
-        if (oldPath != null && !oldPath.equals(newPath) && SharedState.hw_decode_obj != null) {
-            long oldPos = SharedState.hw_decode_obj.getCurrentPositionMs();
-            if (oldPos > 0) SharedState.videoPositions.put(oldPath, oldPos);
+    /**
+     * v6.1: last-resort local fallback for a dead live link (StreamPlayer calls this).
+     * Rebuilds the pipeline on the local video without touching config.
+     */
+    public static void swapToLocal(VideoSource localSrc, boolean playSound) {
+        reloadWithSource(localSrc, playSound);
+    }
+
+    /** Core hot-swap: rebuilds every active player/decoder on the given source. */
+    private static void reloadWithSource(VideoSource src, boolean playSound) {
+        if (src == null || !src.isActive()) {
+            XposedBridge.log("[Rinigan]Camera1 hot-swap: source inactive, keeping current players");
+            return;
         }
-        Long saved = SharedState.videoPositions.get(newPath);
-        resumePos = (saved != null) ? saved : 0;
+        String newRef = src.mediaRef();
+        XposedBridge.log("[Rinigan]Camera1 hot-swap source → " + src.describe());
+
+        // === Resume playback logic (local files only — live links always start now) ===
+        String oldPath = SharedState.currentVideoPath;
+        SharedState.currentVideoPath = newRef;
+        long resumePos = 0;
+        if (!src.isStream()) {
+            if (oldPath != null && !oldPath.equals(newRef) && SharedState.hw_decode_obj != null) {
+                long oldPos = SharedState.hw_decode_obj.getCurrentPositionMs();
+                if (oldPos > 0) SharedState.videoPositions.put(oldPath, oldPos);
+            }
+            Long saved = SharedState.videoPositions.get(newRef);
+            resumePos = (saved != null) ? saved : 0;
+        }
         // ======================
 
         // MediaPlayer (SurfaceTexture preview) — rebuilt if nulled by stopAllPlayers
         if (SharedState.mSurfacetexture != null) {
+            if (SharedState.mMediaPlayer != null) StreamPlayer.cancel(SharedState.mMediaPlayer);
             if (SharedState.mMediaPlayer == null) {
-                if (SharedState.mSurface == null) {
-                    SharedState.mSurface = new Surface(SharedState.mSurfacetexture);
-                }
                 SharedState.mMediaPlayer = new MediaPlayer();
-                SharedState.mMediaPlayer.setSurface(TransformApplicator.wrapSurface(
-                        SharedState.mSurface, "c1-tex", newPath,
-                        SharedState.toast_content, null));
             }
-            try {
-                SharedState.mMediaPlayer.reset();
-                SharedState.mMediaPlayer.setSurface(TransformApplicator.wrapSurface(
-                        SharedState.mSurface, "c1-tex", newPath,
-                        SharedState.toast_content, null));
-                SharedState.mMediaPlayer.setVolume(playSound ? 1f : 0f, playSound ? 1f : 0f);
-                SharedState.mMediaPlayer.setLooping(true);
-                SharedState.mMediaPlayer.setOnPreparedListener(mp -> SharedState.mMediaPlayer.start());
-                SharedState.mMediaPlayer.setDataSource(newPath);
-                SharedState.mMediaPlayer.prepare();
-            } catch (Exception e) {
-                XposedBridge.log("[Rinigan]Camera1 hot-swap mMediaPlayer failed: " + e);
+            if (SharedState.mSurface == null) {
+                SharedState.mSurface = new Surface(SharedState.mSurfacetexture);
             }
+            Surface target = TransformApplicator.wrapSurface(
+                    SharedState.mSurface, "c1-tex", newRef,
+                    SharedState.toast_content, null);
+            StreamPlayer.open(SharedState.mMediaPlayer, src, playSound ? 1f : 0f, "c1-tex", target);
         }
 
         // mplayer1 (SurfaceHolder preview) — rebuilt if nulled by stopAllPlayers
         if (SharedState.ori_holder != null) {
+            if (SharedState.mplayer1 != null) StreamPlayer.cancel(SharedState.mplayer1);
             if (SharedState.mplayer1 == null) {
                 SharedState.mplayer1 = new MediaPlayer();
-                SharedState.mplayer1.setSurface(TransformApplicator.wrapSurface(
-                        SharedState.ori_holder.getSurface(), "c1-holder", newPath,
-                        SharedState.toast_content, null));
             }
-            try {
-                SharedState.mplayer1.reset();
-                SharedState.mplayer1.setSurface(TransformApplicator.wrapSurface(
-                        SharedState.ori_holder.getSurface(), "c1-holder", newPath,
-                        SharedState.toast_content, null));
-                SharedState.mplayer1.setVolume(playSound ? 1f : 0f, playSound ? 1f : 0f);
-                SharedState.mplayer1.setLooping(true);
-                SharedState.mplayer1.setOnPreparedListener(mp -> SharedState.mplayer1.start());
-                SharedState.mplayer1.setDataSource(newPath);
-                SharedState.mplayer1.prepare();
-            } catch (Exception e) {
-                XposedBridge.log("[Rinigan]Camera1 hot-swap mplayer1 failed: " + e);
-            }
+            Surface target = TransformApplicator.wrapSurface(
+                    SharedState.ori_holder.getSurface(), "c1-holder", newRef,
+                    SharedState.toast_content, null);
+            StreamPlayer.open(SharedState.mplayer1, src, playSound ? 1f : 0f, "c1-holder", target);
         }
 
         // decoder — rebuilt if nulled by stopAllPlayers
@@ -583,7 +548,7 @@ public class Camera1Handler {
                 }
                 if (resumePos > 0) SharedState.hw_decode_obj.seekTo(resumePos);
                 if (SharedState.playPaused) SharedState.hw_decode_obj.setPaused(true);
-                SharedState.hw_decode_obj.decode(newPath);
+                SharedState.hw_decode_obj.decode(newRef);
             } catch (Throwable t) {
                 XposedBridge.log("[Rinigan]Camera1 hot-swap hw_decode failed: " + t);
             }
@@ -609,6 +574,7 @@ public class Camera1Handler {
     // ======================== Stop all players (called when module is disabled) ========================
     public static void stopAllPlayers() {
         XposedBridge.log("[Rinigan]Camera1 stopping all players/decoders");
+        StreamPlayer.cancelAll();
         TransformApplicator.releaseAll();
         try {
             if (SharedState.mMediaPlayer != null) {

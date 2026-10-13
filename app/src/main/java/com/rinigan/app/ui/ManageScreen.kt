@@ -154,7 +154,8 @@ fun ManageScreen(viewModel: MediaViewModel) {
                                 name = video.name,
                                 sizeMb = video.size / 1048576.0,
                                 durationMs = video.durationMs,
-                                videoPath = video.file.absolutePath,
+                                // v6.1: live links have no video file — render the link icon
+                                videoPath = if (video.sourceUrl != null) null else video.file.absolutePath,
                                 isSelected = video.name == uiState.selectedVideoName,
                                 isAudio = false,
                                 sourceUrl = video.sourceUrl,
@@ -195,10 +196,10 @@ fun ManageScreen(viewModel: MediaViewModel) {
 
         if (showAddLinkDialog) {
             AddLinkDialog(
-                isDownloading = uiState.linkDownloading,
-                progress = uiState.linkDownloadProgress,
+                isBusy = uiState.linkDownloading,
+                justAdded = !uiState.linkDownloading && uiState.linkDownloadProgress >= 100,
                 error = uiState.linkDownloadError,
-                onDownload = { url -> viewModel.addVideoFromUrl(url) },
+                onAdd = { url -> viewModel.addVideoFromUrl(url) },
                 onDismiss = {
                     showAddLinkDialog = false
                     viewModel.clearLinkError()
@@ -209,30 +210,31 @@ fun ManageScreen(viewModel: MediaViewModel) {
 }
 
 /**
- * v6 — dialog to add a remote video link. The video is downloaded into the
- * Camera1 directory, then behaves exactly like any locally stored video.
+ * v6.1 — dialog to add a LIVE video link. Nothing is downloaded: the link is
+ * stored and becomes the active camera source immediately — the video plays
+ * online, in real time, in place of the camera feed.
  */
 @Composable
 private fun AddLinkDialog(
-    isDownloading: Boolean,
-    progress: Int,
+    isBusy: Boolean,
+    justAdded: Boolean,
     error: String?,
-    onDownload: (String) -> Unit,
+    onAdd: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var url by remember { mutableStateOf("") }
     val validUrl = remember(url) { MediaViewModel.isValidVideoUrl(url.trim()) }
 
-    // auto-close when the download finished successfully
-    LaunchedEffect(isDownloading, progress) {
-        if (!isDownloading && progress >= 100) {
-            kotlinx.coroutines.delay(600)
+    // auto-close when the link was added successfully
+    LaunchedEffect(justAdded) {
+        if (justAdded) {
+            kotlinx.coroutines.delay(400)
             onDismiss()
         }
     }
 
     AlertDialog(
-        onDismissRequest = { if (!isDownloading) onDismiss() },
+        onDismissRequest = { if (!isBusy) onDismiss() },
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Link, null, tint = MaterialTheme.colorScheme.primary)
@@ -251,22 +253,19 @@ private fun AddLinkDialog(
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    enabled = !isDownloading,
+                    enabled = !isBusy,
                     singleLine = true,
                     isError = url.isNotBlank() && !validUrl,
                     label = { Text(stringResource(R.string.link_dialog_hint)) },
                     placeholder = { Text(stringResource(R.string.link_dialog_url_placeholder)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (isDownloading) {
+                if (isBusy) {
                     Spacer(Modifier.height(14.dp))
-                    LinearProgressIndicator(
-                        progress = { progress / 100f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = stringResource(R.string.link_download_progress) + " $progress%",
+                        text = stringResource(R.string.link_adding),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -285,13 +284,13 @@ private fun AddLinkDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = validUrl && !isDownloading,
-                onClick = { onDownload(url.trim()) }
-            ) { Text(stringResource(R.string.link_dialog_download)) }
+                enabled = validUrl && !isBusy,
+                onClick = { onAdd(url.trim()) }
+            ) { Text(stringResource(R.string.link_dialog_add)) }
         },
         dismissButton = {
             TextButton(
-                enabled = !isDownloading,
+                enabled = !isBusy,
                 onClick = onDismiss
             ) { Text(stringResource(R.string.perapp_cancel)) }
         }
@@ -356,6 +355,14 @@ private fun MediaCard(
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
+                    } else if (sourceUrl != null) {
+                        Icon(
+                            Icons.Default.Link,
+                            null,
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
                     } else {
                         Icon(
                             Icons.Default.VideoLibrary,
@@ -392,9 +399,17 @@ private fun MediaCard(
                 }
                 Spacer(Modifier.height(4.dp))
                 Row {
+                    if (durationMs == -1L) {
+                        // v6.1: live link — no file size, show LIVE badge
+                        Text(text = "LIVE",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold)
+                    } else {
                     Text(text = String.format(Locale.getDefault(), "%.1f MB", sizeMb),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     if (durationMs > 0) {
                         val s = durationMs / 1000
                         val m = s / 60

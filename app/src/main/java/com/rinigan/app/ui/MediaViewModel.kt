@@ -5,7 +5,6 @@ import android.media.MediaMetadataRetriever
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.rinigan.app.ConfigManager
-import com.rinigan.app.VideoLinkResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,7 +63,22 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
                 videoExts.contains(f.extension.lowercase())
             }?.sorted() ?: emptyList()
 
-            val videoItems = videoFiles.map { f ->
+            // v6.1: .url descriptors = LIVE links (played online, never downloaded)
+            val linkFiles = videoDir.listFiles { f ->
+                f.extension.lowercase() == "url"
+            }?.sorted() ?: emptyList()
+
+            val linkItems = linkFiles.map { f ->
+                VideoItem(
+                    name = f.name.removeSuffix(".url"),
+                    file = f,
+                    size = 0L,
+                    durationMs = -1L, // -1 marks a live link in the UI
+                    sourceUrl = f.readText().trim()
+                )
+            }
+
+            val videoItems = (videoFiles.map { f ->
                 var dur = 0L
                 try {
                     val retriever = MediaMetadataRetriever()
@@ -72,8 +86,8 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
                     dur = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
                     retriever.release()
                 } catch (_: Exception) {}
-                VideoItem(f.name, f, f.length(), dur, VideoLinkResolver.readSourceLink(f))
-            }
+                VideoItem(f.name, f, f.length(), dur, null)
+            } + linkItems).sortedBy { it.name.lowercase() }
 
             val audioExts = setOf("mp3", "wav", "aac", "m4a", "ogg", "flac")
             val audioFiles = videoDir.listFiles { f ->
@@ -124,8 +138,19 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
                 configManager.setString(ConfigManager.KEY_SELECTED_VIDEO, "")
                 _uiState.update { it.copy(selectedVideoName = null) }
             } else {
+                // v6.1: link items end with .url — selecting one switches to LIVE mode
+                val isLink = name.endsWith(".url")
                 val targetPath = File(videoDir, name).absolutePath
                 configManager.setString(ConfigManager.KEY_SELECTED_VIDEO, targetPath)
+                if (isLink) {
+                    val url = try { File(targetPath).readText().trim() } catch (_: Exception) { "" }
+                    if (url.isNotEmpty()) {
+                        configManager.setString(ConfigManager.KEY_MEDIA_SOURCE_TYPE, ConfigManager.MEDIA_SOURCE_STREAM)
+                        configManager.setString(ConfigManager.KEY_STREAM_URL, url)
+                    }
+                } else {
+                    configManager.setString(ConfigManager.KEY_MEDIA_SOURCE_TYPE, ConfigManager.MEDIA_SOURCE_LOCAL)
+                }
                 _uiState.update { it.copy(selectedVideoName = name) }
             }
         }
@@ -150,7 +175,7 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
             file.delete()
             // v6: also clean the video-link marker if present
             try {
-                val marker = File(file.parentFile, file.name + VideoLinkResolver.LINK_MARKER_SUFFIX)
+                val marker = File(file.parentFile, file.name + ".url")
                 if (marker.exists()) marker.delete()
             } catch (_: Exception) {}
             loadMedia()
@@ -181,9 +206,13 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ===== v6: video link download =====
+    // ===== v6.1: LIVE video link (played online in real time — NOTHING is downloaded) =====
 
-    /** Downloads a remote video link into the Camera1 directory and selects nothing automatically. */
+    /**
+     * Adds a remote video link as a LIVE source. The link is stored as a tiny
+     * .url descriptor and becomes active immediately: when the target app opens
+     * its camera, the video plays directly from the network in real time.
+     */
     fun addVideoFromUrl(rawUrl: String) {
         val url = rawUrl.trim()
         if (!isValidVideoUrl(url)) {
@@ -193,56 +222,24 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
         if (_uiState.value.linkDownloading) return
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(linkDownloading = true, linkDownloadProgress = 0, linkDownloadError = null) }
-            var partFile: File? = null
             try {
-                val baseName = fileNameFromUrl(url)
-                val dest = File(videoDir, baseName)
+                val linkFile = File(videoDir, liveLinkFileName(url))
+                linkFile.writeText(url)
+                try { linkFile.setReadable(true, false) } catch (_: Exception) {}
 
-                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                try {
-                    conn.instanceFollowRedirects = true
-                    conn.connectTimeout = 10_000
-                    conn.readTimeout = 30_000
-                    conn.setRequestMethod("GET")
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) Rinigan/6.0")
-                    val code = conn.responseCode
-                    if (code !in 200..299) throw java.io.IOException("HTTP $code")
-
-                    val total = conn.contentLengthLong
-                    val part = File(videoDir, "$baseName.part")
-                    partFile = part
-                    java.io.BufferedInputStream(conn.inputStream).use { input ->
-                        FileOutputStream(part).use { output ->
-                            val buf = ByteArray(64 * 1024)
-                            var read = 0L
-                            while (true) {
-                                val n = input.read(buf)
-                                if (n == -1) break
-                                output.write(buf, 0, n)
-                                read += n
-                                if (total > 0) {
-                                    val pct = ((read * 100) / total).toInt().coerceIn(0, 100)
-                                    _uiState.update { it.copy(linkDownloadProgress = pct) }
-                                }
-                            }
-                            output.flush()
-                        }
-                    }
-                    if (part.length() <= 0) throw java.io.IOException("empty file")
-                    if (dest.exists()) dest.delete()
-                    if (!part.renameTo(dest)) {
-                        part.copyTo(dest, overwrite = true)
-                        part.delete()
-                    }
-                    dest.setReadable(true, false)
-                    VideoLinkResolver.writeSourceLink(dest, url)
-                } finally {
-                    try { conn.disconnect() } catch (_: Exception) {}
+                // activate immediately: stream mode + URL + selected
+                configManager.setString(ConfigManager.KEY_SELECTED_VIDEO, linkFile.absolutePath)
+                configManager.setString(ConfigManager.KEY_MEDIA_SOURCE_TYPE, ConfigManager.MEDIA_SOURCE_STREAM)
+                configManager.setString(ConfigManager.KEY_STREAM_URL, url)
+                _uiState.update {
+                    it.copy(
+                        linkDownloading = false,
+                        linkDownloadProgress = 100,
+                        selectedVideoName = linkFile.name
+                    )
                 }
-                _uiState.update { it.copy(linkDownloading = false, linkDownloadProgress = 100) }
                 loadMedia()
             } catch (e: Exception) {
-                try { partFile?.delete() } catch (_: Exception) {}
                 _uiState.update {
                     it.copy(
                         linkDownloading = false,
@@ -254,7 +251,6 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Acknowledges the last link-download error (dialog shows it once). */
     fun clearLinkError() {
         _uiState.update { it.copy(linkDownloadError = null) }
     }
@@ -272,17 +268,13 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        fun fileNameFromUrl(url: String): String {
-            val clean = url.substringBefore("?")
-            val last = clean.substringAfterLast('/')
-            var name = if (last.isNotEmpty() && VIDEO_EXT.containsMatchIn(last)) last else ""
-            if (name.isEmpty()) name = "link_${System.currentTimeMillis()}.mp4"
-            // sanitize
-            name = name.replace(Regex("[^A-Za-z0-9._\\-() ]"), "_")
-            if (name.length > 80) {
-                val ext = name.substringAfterLast('.', "mp4")
-                name = name.take(70) + "." + ext
-            }
+        /** Builds the .url descriptor name: Link_<host>_<ts>.url */
+        fun liveLinkFileName(url: String): String {
+            val host = try {
+                java.net.URI(url).host ?: "video"
+            } catch (_: Exception) { "video" }
+            var name = "Link_${host}_${System.currentTimeMillis() / 1000}.url"
+            name = name.replace(Regex("[^A-Za-z0-9._\\-]"), "_")
             return name
         }
     }

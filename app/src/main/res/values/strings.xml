@@ -91,14 +91,14 @@
     <string name="select_from_storage">Select from storage (reference)</string>
 
     <!-- Video Link (v6) -->
-    <string name="manage_add_link">Add video link</string>
-    <string name="link_dialog_title">Video link</string>
-    <string name="link_dialog_desc">Paste a direct video link (mp4). The video is downloaded to the Camera1 folder and used in place of the video file.</string>
+    <string name="manage_add_link">Add live video link</string>
+    <string name="link_dialog_title">Live video link</string>
+    <string name="link_dialog_desc">Paste a video link (mp4, m3u8…). It plays LIVE over the internet in place of the camera — nothing is downloaded, no black screen.</string>
     <string name="link_dialog_hint">Video link</string>
     <string name="link_dialog_url_placeholder">https://example.com/video.mp4</string>
-    <string name="link_dialog_download">Download</string>
-    <string name="link_download_progress">Downloading…</string>
-    <string name="link_download_failed">Download failed</string>
+    <string name="link_dialog_add">Add</string>
+    <string name="link_adding">Activating live link…</string>
+    <string name="link_download_failed">Could not add link</string>
     <string name="link_invalid_url">Invalid video link</string>
 
     <!-- About -->

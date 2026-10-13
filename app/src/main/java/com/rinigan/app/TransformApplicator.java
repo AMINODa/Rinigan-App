@@ -215,11 +215,28 @@ public final class TransformApplicator {
 
     // ======================== Video dimensions ========================
 
-    /** Cached video dimensions via MediaMetadataRetriever; null when unknown. */
+    /** URLs (live links) are probed in the background — never on the camera thread. */
+    private static final java.util.Set<String> PROBE_PENDING =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static boolean isNetworkRef(String path) {
+        return path.startsWith("http://") || path.startsWith("https://");
+    }
+
+    /**
+     * Cached video dimensions. Local paths use MediaMetadataRetriever directly;
+     * network links return the cached value if known, otherwise kick off a
+     * background probe and return null (callers use safe defaults — the real
+     * size arrives via StreamPlayer.onVideoSizeChanged → reportStreamDimensions).
+     */
     public static int[] getVideoDimensions(String path) {
         if (path == null || path.isEmpty()) return null;
         int[] cached = VIDEO_DIMS.get(path);
         if (cached != null) return cached;
+        if (isNetworkRef(path)) {
+            probeNetworkDimensions(path);
+            return null; // never block the camera thread on network I/O
+        }
         MediaMetadataRetriever mmr = null;
         try {
             mmr = new MediaMetadataRetriever();
@@ -249,6 +266,64 @@ public final class TransformApplicator {
             } catch (Throwable ignored) {
             }
         }
+    }
+
+    /**
+     * v6.1 — Live size feed from StreamPlayer.onVideoSizeChanged.
+     * Updates the dimension cache and hot-resizes every active GL relay so the
+     * FIRST frame of a live link is already correctly shaped (no stretch, no black).
+     */
+    public static void reportStreamDimensions(String mediaRef, int w, int h) {
+        try {
+            if (mediaRef == null || w <= 0 || h <= 0) return;
+            int[] existing = VIDEO_DIMS.get(mediaRef);
+            if (existing != null && existing[0] == w && existing[1] == h) return;
+            VIDEO_DIMS.put(mediaRef, new int[]{w, h});
+            LogUtil.log("[Transform]live dims reported " + w + "x" + h);
+            for (GlFrameRelay relay : RELAYS.values()) {
+                try {
+                    relay.updateTransform(null, w, h);
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** Background MediaMetadataRetriever probe for network sources. */
+    private static void probeNetworkDimensions(final String url) {
+        if (!PROBE_PENDING.add(url)) return; // already probing / probed
+        Thread probe = new Thread(() -> {
+            MediaMetadataRetriever mmr = null;
+            try {
+                mmr = new MediaMetadataRetriever();
+                java.util.Map<String, String> headers = new java.util.HashMap<>();
+                headers.put("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Rinigan/6.1");
+                try {
+                    mmr.setDataSource(url, headers);
+                } catch (Throwable headerFail) {
+                    mmr.setDataSource(url);
+                }
+                int w = Integer.parseInt(
+                        mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+                int h = Integer.parseInt(
+                        mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+                if (w > 0 && h > 0) {
+                    LogUtil.log("[Transform]probed live dims " + w + "x" + h);
+                    reportStreamDimensions(url, w, h);
+                }
+            } catch (Throwable t) {
+                LogUtil.log("[Transform]live dims probe failed (non-fatal): " + t);
+            } finally {
+                try {
+                    if (mmr != null) mmr.release();
+                } catch (Throwable ignored) {
+                }
+                PROBE_PENDING.remove(url);
+            }
+        }, "Rinigan-DimsProbe");
+        probe.setDaemon(true);
+        probe.start();
     }
 
     /** Clears the dimension cache (video replaced). */

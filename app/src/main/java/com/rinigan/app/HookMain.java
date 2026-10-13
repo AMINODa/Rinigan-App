@@ -135,6 +135,29 @@ public class HookMain implements IXposedHookLoadPackage {
         // ========== Delegate Camera2 handler ==========
         Camera2Handler.init(lpparam);
 
+        // ========== v6.1: allow http:// live links in every hooked app ==========
+        // Android 9+ blocks cleartext (http) traffic unless the APP's manifest opts in.
+        // A virtual-camera module cannot edit the host app's manifest, so we hook the
+        // policy check. Without this, most non-https video links fail instantly and
+        // the user sees a black screen instead of the live link.
+        if (!lpparam.packageName.equals(BuildConfig.APPLICATION_ID)) {
+            try {
+                XC_MethodHook allowCleartext = new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        param.setResult(Boolean.TRUE);
+                    }
+                };
+                XposedHelpers.findAndHookMethod("android.security.NetworkSecurityPolicy",
+                        lpparam.classLoader, "isCleartextTrafficPermitted", allowCleartext);
+                XposedHelpers.findAndHookMethod("android.security.NetworkSecurityPolicy",
+                        lpparam.classLoader, "isCleartextTrafficPermitted", String.class, allowCleartext);
+                XposedBridge.log("[Rinigan]cleartext policy hooked (live links may use http://)");
+            } catch (Throwable t) {
+                XposedBridge.log("[Rinigan]cleartext hook failed (non-fatal): " + t);
+            }
+        }
+
         // ========== Delegate microphone handler ==========
         try {
             MicrophoneHandler.init(lpparam);
